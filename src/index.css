@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+body, html {
+  touch-action: manipulation; /* Запрещает двойной тап для зума, но разрешает скролл */
+  overscroll-behavior: none;  /* Убирает "пружинку" при скролле за границы (по желанию) */
+}
+
 /* 1. ТВОЙ ОРИГИНАЛЬНЫЙ ФОН */
 body {
   margin: 0;
