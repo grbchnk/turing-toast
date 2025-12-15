@@ -6,38 +6,21 @@ import { Home } from './screens/Home';
 import { Game } from './screens/Game';
 
 function App() {
-  const [isReady, setIsReady] = useState(false);
-
   useEffect(() => {
-    // Telegram SDK
     WebApp.ready();
     WebApp.expand();
 
-    const initData = WebApp.initData;
+    // initData может прийти позже — это нормально
+    socket.auth = {
+      initData: WebApp.initData || ''
+    };
 
-    if (!initData) {
-      console.warn('Telegram initData not ready yet');
-      return;
-    }
-
-    socket.auth = { initData };
     socket.connect();
-
-    setIsReady(true);
 
     return () => {
       socket.disconnect();
     };
   }, []);
-
-  // 🔴 КРИТИЧНО: пока Telegram не готов — ничего не рендерим
-  if (!isReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Loading...
-      </div>
-    );
-  }
 
   return (
     <HashRouter>
@@ -51,5 +34,6 @@ function App() {
     </HashRouter>
   );
 }
+
 
 export default App;
