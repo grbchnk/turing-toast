@@ -271,7 +271,8 @@ export const Game = () => {
                   {sorted[1] && (
                       <div className="flex flex-col items-center animate-fade-in-up delay-100">
                           <div className="mb-2 relative">
-                               <Avatar name={sorted[1].name} size="md" />
+                               <Avatar name={sorted[1].name} size="md" avatarUrl={sorted[1].avatar_url}/>
+                            
                                <div className="absolute -bottom-2 inset-x-0 flex justify-center"><span className="bg-slate-700 text-white text-[10px] px-2 rounded-full border border-slate-600">#2</span></div>
                           </div>
                           <div className="w-20 h-24 bg-gradient-to-t from-slate-800 to-slate-700 rounded-t-lg flex items-start justify-center pt-2 border-t border-slate-500">
@@ -285,7 +286,7 @@ export const Game = () => {
                            <div className="mb-2 relative">
                                <Trophy size={32} className="text-yellow-400 absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce" />
                                <div className="ring-4 ring-yellow-500/50 rounded-full">
-                                    <Avatar name={winner.name} size="lg" />
+                                    <Avatar name={winner.name} size="lg" avatarUrl={winner.avatar_url}/>
                                </div>
                                <div className="absolute -bottom-3 inset-x-0 flex justify-center"><span className="bg-yellow-500 text-black font-black text-xs px-3 py-0.5 rounded-full border-2 border-slate-900 shadow-lg">#1</span></div>
                           </div>
@@ -299,7 +300,7 @@ export const Game = () => {
                   {sorted[2] && (
                       <div className="flex flex-col items-center animate-fade-in-up delay-200">
                           <div className="mb-2 relative">
-                               <Avatar name={sorted[2].name} size="md" />
+                               <Avatar name={sorted[2].name} size="md" avatarUrl={sorted[2].avatar_url}/>
                                <div className="absolute -bottom-2 inset-x-0 flex justify-center"><span className="bg-amber-900 text-amber-100 text-[10px] px-2 rounded-full border border-amber-800">#3</span></div>
                           </div>
                           <div className="w-20 h-16 bg-gradient-to-t from-amber-900/40 to-amber-800/40 rounded-t-lg flex items-start justify-center pt-2 border-t border-amber-800">
@@ -328,7 +329,7 @@ export const Game = () => {
                                   <p className="text-[10px] text-slate-400 mb-2">{ach.desc}</p>
                                   
                                   <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/50">
-                                      <Avatar name={player.name} size="sm" />
+                                      <Avatar name={player.name} size="sm" avatarUrl={player.avatar_url}/>
                                       <span className="text-xs font-bold text-cyan-300 truncate">{player.name}</span>
                                   </div>
                               </div>
@@ -365,13 +366,19 @@ export const Game = () => {
                     
                     let iconContent;
                     if (isMyOwn) {
-                        iconContent = <Avatar name={myProfile.name} size="sm" />;
+                        iconContent = <Avatar name={myProfile.name} size="sm" avatarUrl={myProfile.avatar_url}/>;
                     } else if (myGuess) {
                         if (myGuess.type === 'ai') {
                             iconContent = <Avatar isAi={true} size="sm" />;
                         } else {
                             const guessedPlayer = players.find(p => p.id === myGuess.playerId);
-                            iconContent = <Avatar name={guessedPlayer?.name} size="sm" />;
+                            iconContent = (
+                                <Avatar
+                                    name={guessedPlayer?.name}
+                                    avatarUrl={guessedPlayer?.avatar_url}
+                                    size="sm"
+                                />
+                                );
                         }
                     } else {
                         iconContent = <div className="w-8 h-8 rounded-full bg-slate-700/50 border border-slate-600 flex items-center justify-center text-slate-500"><HelpCircle size={14} /></div>;
@@ -427,7 +434,12 @@ export const Game = () => {
                                 return (
                                     <button key={p.id} onClick={() => handleSelectVote(selectedAnswerId, 'human', p.id)} className={`flex flex-col items-center min-w-[50px] gap-1 group transition-all ${isVotedHere ? 'opacity-100 scale-110' : 'opacity-60 hover:opacity-100'} ${isUsedElsewhere ? 'grayscale opacity-30' : ''}`}>
                                         <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${isVotedHere ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-slate-800' : 'group-hover:ring-2 group-hover:ring-cyan-400'}`}>
-                                            <Avatar name={p.name} size="full" />
+                                            <Avatar
+                                                name={p.name}
+                                                avatarUrl={p.avatar_url}
+                                                size="full"
+                                                />
+
                                         </div>
                                         <span className={`text-[9px] font-bold truncate max-w-[60px] mt-1 ${isVotedHere ? 'text-green-400' : 'text-slate-400'}`}>{p.name}</span>
                                     </button>
@@ -485,6 +497,7 @@ export const Game = () => {
                     const author = ans.authorId === 'ai' ? { name: 'AI Bot', isAi: true } : players.find(p => p.id === ans.authorId);
                     const myGuess = guesses[ans.id];
                     const othersForThis = roundResults.votes[ans.id] || [];
+                    const getVoter = (playerId) => players.find(pl => pl.id === playerId);
                     
                     let scoreDelta = 0;
                     if (myGuess) {
@@ -512,7 +525,12 @@ export const Game = () => {
                         <div key={ans.id} className={`flex w-full ${isMyOwn ? 'justify-end' : 'justify-start'}`}>
                             <div className={`flex items-start gap-3 max-w-[98%] ${isMyOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                 <div className="shrink-0 flex flex-col items-center">
-                                    <Avatar name={author?.name} isAi={author?.isAi} size="sm" />
+                                    <Avatar
+                                        name={author?.name}
+                                        isAi={author?.isAi}
+                                        avatarUrl={!author?.isAi ? author?.avatar_url : undefined}
+                                        size="sm"
+                                        />
                                 </div>
                                 <div className={`relative p-4 rounded-2xl border min-w-[140px] w-full ${isMyOwn ? 'bg-slate-800/50 border-slate-600 rounded-tr-none text-slate-300' : `bg-slate-800 rounded-tl-none ${borderClass}`}`}>
                                     {!isMyOwn && <div className={`text-[10px] font-bold mb-1 uppercase tracking-wide ${author?.isAi ? 'text-purple-400' : 'text-slate-400'}`}>{author?.isAi ? 'Тостик' : author?.name}</div>}
@@ -534,7 +552,19 @@ export const Game = () => {
                                                 <div className="flex items-center gap-1">
                                                     <CheckCircle size={12} className="text-green-500/70" />
                                                     <div className="flex -space-x-1">
-                                                        {correctVotes.map((vote, i) => <div key={i} className="rounded-full border border-slate-900 relative z-10"><Avatar name={players.find(pl => pl.id === vote.playerId)?.name} size="xs" /></div>)}
+                                                        {correctVotes.map((vote, i) => {
+                                                        const voter = getVoter(vote.playerId);
+
+                                                        return (
+                                                            <div key={i} className="rounded-full border border-slate-900 relative z-10">
+                                                            <Avatar
+                                                                name={voter?.name}
+                                                                avatarUrl={voter?.avatar_url}
+                                                                size="xs"
+                                                            />
+                                                            </div>
+                                                        );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
@@ -543,7 +573,20 @@ export const Game = () => {
                                                 <div className="flex items-center gap-1">
                                                     <Drama size={12} className="text-purple-400/80" />
                                                     <div className="flex -space-x-1">
-                                                        {deceivedVotes.map((vote, i) => <div key={i} className="rounded-full border border-purple-900/50 ring-1 ring-purple-500 relative z-10 grayscale-[30%]"><Avatar name={players.find(pl => pl.id === vote.playerId)?.name} size="xs" /></div>)}
+                                                        {deceivedVotes.map((vote, i) => {
+                                                        const voter = getVoter(vote.playerId);
+
+                                                        return (
+                                                            <div key={i} className="rounded-full border border-purple-900/50 ring-1 ring-purple-500 relative z-10 grayscale-[30%]">
+                                                            <Avatar
+                                                                name={voter?.name}
+                                                                avatarUrl={voter?.avatar_url}
+                                                                size="xs"
+                                                            />
+                                                            </div>
+                                                        );
+                                                        })}
+
                                                     </div>
                                                 </div>
                                             )}
@@ -552,7 +595,19 @@ export const Game = () => {
                                                 <div className="flex items-center gap-1">
                                                     <XCircle size={12} className="text-red-500/70" />
                                                     <div className="flex -space-x-1">
-                                                        {wrongVotes.map((vote, i) => <div key={i} className="rounded-full border border-slate-900 relative z-10 grayscale opacity-70"><Avatar name={players.find(pl => pl.id === vote.playerId)?.name} size="xs" /></div>)}
+                                                        {wrongVotes.map((vote, i) => {
+                                                        const voter = getVoter(vote.playerId);
+
+                                                        return (
+                                                            <div key={i} className="rounded-full border border-slate-900 relative z-10 grayscale opacity-70">
+                                                            <Avatar
+                                                                name={voter?.name}
+                                                                avatarUrl={voter?.avatar_url}
+                                                                size="xs"
+                                                            />
+                                                            </div>
+                                                        );
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
@@ -610,7 +665,11 @@ export const Game = () => {
             ) : (
                 <div className="flex-1 flex flex-col items-center justify-center animate-fade-in">
                     <div className="relative mb-6">
-                        <Avatar name={myProfile.name} size="lg" />
+                        <Avatar
+                            name={myProfile.name}
+                            avatarUrl={myProfile.avatar_url}
+                            size="lg"
+                            />
                         <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2 border-4 border-slate-900 shadow-[0_0_10px_lime]"><CheckCircle size={24} className="text-black" strokeWidth={3}/></div>
                     </div>
                     <p className="text-xl text-white font-bold mb-2">Ответ принят!</p>

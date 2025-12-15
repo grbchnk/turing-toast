@@ -254,7 +254,11 @@ export const Home = () => {
             <div className="flex items-center gap-3 animate-fade-in-down">
                 <div className="relative group cursor-pointer" onClick={startEditing}>
                     <div className="ring-2 ring-purple-500/50 rounded-full p-0.5 hover:ring-cyan-400 transition-all">
-                        <Avatar name={myProfile.name} size="md" />
+                        <Avatar
+                            name={p.name}
+                            avatarUrl={p.avatar_url}
+                            size="md"
+                            />
                     </div>
                 </div>
                 
@@ -369,7 +373,11 @@ export const Home = () => {
               {players.map((p, index) => (
                   <div key={p.id || index} className="flex flex-col items-center animate-fade-in-up flex-grow basis-14 min-w-[3.5rem]">
                       <div className="relative">
-                        <Avatar name={p.name} size="sm" />
+                        <Avatar
+                            name={p.name}
+                            avatarUrl={p.avatar_url}
+                            size="sm"
+                            />
                         {p.socketId === players[0]?.socketId && (
                            <div className="absolute -top-1 -right-1 text-[10px]">👑</div>
                         )}
