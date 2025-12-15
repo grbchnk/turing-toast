@@ -271,7 +271,7 @@ export const Game = () => {
                   {sorted[1] && (
                       <div className="flex flex-col items-center animate-fade-in-up delay-100">
                           <div className="mb-2 relative">
-                               <Avatar name={sorted[1].name} size="md" avatarUrl={sorted[1].avatar_url}/>
+                               <Avatar name={sorted[1].name} size="md" avatarUrl={sorted[1].avatar}/>
                             
                                <div className="absolute -bottom-2 inset-x-0 flex justify-center"><span className="bg-slate-700 text-white text-[10px] px-2 rounded-full border border-slate-600">#2</span></div>
                           </div>
@@ -286,7 +286,7 @@ export const Game = () => {
                            <div className="mb-2 relative">
                                <Trophy size={32} className="text-yellow-400 absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce" />
                                <div className="ring-4 ring-yellow-500/50 rounded-full">
-                                    <Avatar name={winner.name} size="lg" avatarUrl={winner.avatar_url}/>
+                                    <Avatar name={winner.name} size="lg" avatarUrl={winner.avatar}/>
                                </div>
                                <div className="absolute -bottom-3 inset-x-0 flex justify-center"><span className="bg-yellow-500 text-black font-black text-xs px-3 py-0.5 rounded-full border-2 border-slate-900 shadow-lg">#1</span></div>
                           </div>
@@ -300,7 +300,7 @@ export const Game = () => {
                   {sorted[2] && (
                       <div className="flex flex-col items-center animate-fade-in-up delay-200">
                           <div className="mb-2 relative">
-                               <Avatar name={sorted[2].name} size="md" avatarUrl={sorted[2].avatar_url}/>
+                               <Avatar name={sorted[2].name} size="md" avatarUrl={sorted[2].avatar}/>
                                <div className="absolute -bottom-2 inset-x-0 flex justify-center"><span className="bg-amber-900 text-amber-100 text-[10px] px-2 rounded-full border border-amber-800">#3</span></div>
                           </div>
                           <div className="w-20 h-16 bg-gradient-to-t from-amber-900/40 to-amber-800/40 rounded-t-lg flex items-start justify-center pt-2 border-t border-amber-800">
@@ -329,7 +329,7 @@ export const Game = () => {
                                   <p className="text-[10px] text-slate-400 mb-2">{ach.desc}</p>
                                   
                                   <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/50">
-                                      <Avatar name={player.name} size="sm" avatarUrl={player.avatar_url}/>
+                                      <Avatar name={player.name} size="sm" avatarUrl={player.avatar}/>
                                       <span className="text-xs font-bold text-cyan-300 truncate">{player.name}</span>
                                   </div>
                               </div>
@@ -366,7 +366,7 @@ export const Game = () => {
                     
                     let iconContent;
                     if (isMyOwn) {
-                        iconContent = <Avatar name={myProfile.name} size="sm" avatarUrl={myProfile.avatar_url}/>;
+                        iconContent = <Avatar name={myProfile.name} size="sm" avatarUrl={myProfile.avatar}/>;
                     } else if (myGuess) {
                         if (myGuess.type === 'ai') {
                             iconContent = <Avatar isAi={true} size="sm" />;
@@ -375,7 +375,7 @@ export const Game = () => {
                             iconContent = (
                                 <Avatar
                                     name={guessedPlayer?.name}
-                                    avatarUrl={guessedPlayer?.avatar_url}
+                                    avatarUrl={guessedPlayer?.avatar}
                                     size="sm"
                                 />
                                 );
@@ -436,7 +436,7 @@ export const Game = () => {
                                         <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${isVotedHere ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-slate-800' : 'group-hover:ring-2 group-hover:ring-cyan-400'}`}>
                                             <Avatar
                                                 name={p.name}
-                                                avatarUrl={p.avatar_url}
+                                                avatarUrl={p.avatar}
                                                 size="full"
                                                 />
 
@@ -528,7 +528,7 @@ export const Game = () => {
                                     <Avatar
                                         name={author?.name}
                                         isAi={author?.isAi}
-                                        avatarUrl={!author?.isAi ? author?.avatar_url : undefined}
+                                        avatarUrl={!author?.isAi ? author?.avatar : undefined}
                                         size="sm"
                                         />
                                 </div>
@@ -559,7 +559,7 @@ export const Game = () => {
                                                             <div key={i} className="rounded-full border border-slate-900 relative z-10">
                                                             <Avatar
                                                                 name={voter?.name}
-                                                                avatarUrl={voter?.avatar_url}
+                                                                avatarUrl={voter?.avatar}
                                                                 size="xs"
                                                             />
                                                             </div>
@@ -580,7 +580,7 @@ export const Game = () => {
                                                             <div key={i} className="rounded-full border border-purple-900/50 ring-1 ring-purple-500 relative z-10 grayscale-[30%]">
                                                             <Avatar
                                                                 name={voter?.name}
-                                                                avatarUrl={voter?.avatar_url}
+                                                                avatarUrl={voter?.avatar}
                                                                 size="xs"
                                                             />
                                                             </div>
@@ -602,7 +602,7 @@ export const Game = () => {
                                                             <div key={i} className="rounded-full border border-slate-900 relative z-10 grayscale opacity-70">
                                                             <Avatar
                                                                 name={voter?.name}
-                                                                avatarUrl={voter?.avatar_url}
+                                                                avatarUrl={voter?.avatar}
                                                                 size="xs"
                                                             />
                                                             </div>
@@ -667,7 +667,7 @@ export const Game = () => {
                     <div className="relative mb-6">
                         <Avatar
                             name={myProfile.name}
-                            avatarUrl={myProfile.avatar_url}
+                            avatarUrl={myProfile.avatar}
                             size="lg"
                             />
                         <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-2 border-4 border-slate-900 shadow-[0_0_10px_lime]"><CheckCircle size={24} className="text-black" strokeWidth={3}/></div>
