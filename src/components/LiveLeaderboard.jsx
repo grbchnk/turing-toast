@@ -31,7 +31,7 @@ export const LiveLeaderboard = ({ players, submittedIds = [], roundDeltas = {} }
                 <div className="relative">
                     <div className={`rounded-full border-2 p-[2px] transition-all duration-300 ${getBorderColor(index)}`}>
                         <div className={isDone ? "brightness-110" : ""}>
-                            <Avatar name={p.name} size="sm" />
+                            <Avatar name={p.name} size="sm" avatarUrl={p.avatar}/>
                         </div>
                     </div>
 
