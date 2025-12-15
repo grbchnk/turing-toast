@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socket } from '../socket';
 import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
 import { Toast } from '../components/Toast';
-import { playSound, toggleMute, getMuteState } from '../utils/sounds'; // [NEW] Импорт звуков
+import { playSound, toggleMute, getMuteState } from '../utils/sounds';
 import { 
     Users, Copy, Settings, ListFilter, AlertTriangle, 
-    Volume2, VolumeX, BookOpen, Edit2, Check, X, Info 
+    Volume2, VolumeX, BookOpen, Edit2, Check, X, Info, Share2 
 } from 'lucide-react';
 import WebApp from '@twa-dev/sdk';
+
+// [CONFIG] Замените на вашу прямую ссылку (t.me/your_bot/appname)
+// Если вы еще не создали Direct Link, можно использовать просто ссылку на бота: https://t.me/your_bot?start=
+const BOT_APP_LINK = 'https://t.me/turingtoast_bot/turingtoast'; 
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -19,7 +23,7 @@ export const Home = () => {
   const [toastMsg, setToastMsg] = useState(null);
   const [showRules, setShowRules] = useState(false);
   
-  // [NEW] Звук
+  // Звук
   const [isMuted, setIsMuted] = useState(getMuteState());
 
   // Name Editing
@@ -31,6 +35,9 @@ export const Home = () => {
   const [players, setPlayers] = useState([]);
   const [isHost, setIsHost] = useState(false);
   const [joinCode, setJoinCode] = useState('');
+  
+  // Auto Join Ref to prevent double join
+  const hasAutoJoined = useRef(false);
 
   // Settings State
   const [rounds, setRounds] = useState(5);
@@ -38,28 +45,40 @@ export const Home = () => {
   const [availableTopics, setAvailableTopics] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]); 
 
-  // Инициализируем пустым/гостевым профилем — сервер пришлёт актуальный profile событием
-// Инициализируем временным профилем — сервер сразу пришлёт актуальный через 'profile' событие
-const [myProfile, setMyProfile] = useState(() => {
-  // Попытка взять из localStorage для мгновенного отображения
-  const saved = localStorage.getItem('toast_profile');
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch {}
-  }
+  const [myProfile, setMyProfile] = useState(() => {
+    const saved = localStorage.getItem('toast_profile');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    const tgUser = WebApp.initDataUnsafe?.user;
+    return {
+      id: tgUser?.id ? String(tgUser.id) : 'guest',
+      name: tgUser?.first_name || tgUser?.username || 'Загрузка...',
+      avatar: tgUser?.photo_url || null
+    };
+  });
 
-  // Fallback на время загрузки
-  const tgUser = WebApp.initDataUnsafe?.user;
-  return {
-    id: tgUser?.id ? String(tgUser.id) : 'guest',
-    name: tgUser?.first_name || tgUser?.username || 'Загрузка...',
-    avatar: tgUser?.photo_url || null
-  };
-});
+  // --- [NEW] AUTO JOIN LOGIC ---
+  useEffect(() => {
+      // 1. Расширяем WebApp при запуске
+      WebApp.expand();
 
-
-
+      // 2. Проверяем start_param (пришел ли юзер по ссылке приглашения)
+      const startParam = WebApp.initDataUnsafe?.start_param;
+      
+      if (startParam && !hasAutoJoined.current) {
+          console.log("Auto-joining room:", startParam);
+          setJoinCode(startParam);
+          hasAutoJoined.current = true; // Ставим флаг, чтобы не пытаться войти дважды
+          
+          // Небольшая задержка, чтобы сокет успел инициализироваться
+          setTimeout(() => {
+              socket.emit('join_room', { roomId: startParam.toUpperCase() });
+          }, 500);
+      }
+  }, []);
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
@@ -77,36 +96,29 @@ const [myProfile, setMyProfile] = useState(() => {
         setPlayers(room.players);
         setIsHost(true);
         setView('lobby');
-        playSound('whoosh'); // [NEW] Звук перехода
+        playSound('whoosh');
     });
 
     socket.on('profile', (serverProfile) => {
         if (!serverProfile) return;
-
         const updated = {
             id: String(serverProfile.id),
             name: serverProfile.name,
             avatar: serverProfile.avatar || null
         };
-
-        // Сразу обновляем localStorage
         localStorage.setItem('toast_profile', JSON.stringify(updated));
-        
-        // Затем обновляем состояние
         setMyProfile(updated);
     });
-
 
     socket.on('joined_room', (room) => {
         setRoomId(room.id);
         setPlayers(room.players);
         setIsHost(false);
         setView('lobby');
-        playSound('whoosh'); // [NEW] Звук перехода
+        playSound('whoosh');
     });
 
     socket.on('update_players', (updatedPlayers) => {
-        // [NEW] Если игроков стало больше и мы в лобби - звук "чпок"
         if (updatedPlayers.length > players.length && view === 'lobby') {
             playSound('pop');
         }
@@ -115,11 +127,13 @@ const [myProfile, setMyProfile] = useState(() => {
 
     socket.on('error', (msg) => {
         setToastMsg(msg);
-        playSound('buzz'); // [NEW] Звук ошибки
+        playSound('buzz');
+        // Если была ошибка при авто-входе, сбрасываем вид на меню
+        if (view !== 'lobby') setView('menu');
     });
 
     socket.on('game_started', () => {
-        playSound('start'); // [NEW] Звук гонга
+        playSound('start');
         navigate('/game', { state: { roomId, myProfile, isHost } });
     });
 
@@ -136,7 +150,6 @@ const [myProfile, setMyProfile] = useState(() => {
 
   // --- HANDLERS ---
   
-  // [NEW] Переключение звука
   const handleToggleMute = () => {
       const newState = toggleMute();
       setIsMuted(newState);
@@ -145,14 +158,12 @@ const [myProfile, setMyProfile] = useState(() => {
 
   const handleCreateRoom = () => {
     playSound('click');
-    // Сервер сам возьмет данные из socket.user
     socket.emit('create_room'); 
   };
 
   const handleJoinRoom = () => {
     if (!joinCode) return;
     playSound('click');
-    // Тоже не передаем playerData
     socket.emit('join_room', { 
         roomId: joinCode.toUpperCase()
     });
@@ -173,6 +184,24 @@ const [myProfile, setMyProfile] = useState(() => {
       setToastMsg("Код скопирован!");
   };
 
+  // [NEW] Share / Invite Friends Handler
+  const handleInviteFriends = () => {
+      playSound('click');
+      
+      // Формируем ссылку для запуска с параметром
+      // Пример: https://t.me/MyBot/MyApp?startapp=X7Y99
+      const inviteLink = `${BOT_APP_LINK}?startapp=${roomId}`;
+      
+      const text = `Залетай в Тост Тьюринга! Код комнаты: ${roomId}`;
+      
+      // Формируем Telegram Share Link
+      // https://t.me/share/url?url={link}&text={text}
+      const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(text)}`;
+      
+      // Открываем нативную шторку Telegram
+      WebApp.openTelegramLink(shareUrl);
+  };
+
   const toggleTopic = (id) => {
       if (!isHost) return;
       playSound('click');
@@ -181,21 +210,20 @@ const [myProfile, setMyProfile] = useState(() => {
       );
   };
 
-const saveName = () => {
-  const newName = tempName.trim().substring(0, 12);
-  if (!newName) return;
+  const saveName = () => {
+    const newName = tempName.trim().substring(0, 12);
+    if (!newName) return;
 
-  playSound('click');
-  setMyProfile(prev => {
-    const updated = { ...prev, name: newName };
-    localStorage.setItem('toast_profile', JSON.stringify(updated));
-    return updated;
+    playSound('click');
+    setMyProfile(prev => {
+        const updated = { ...prev, name: newName };
+        localStorage.setItem('toast_profile', JSON.stringify(updated));
+        return updated;
     });
 
     socket.emit('update_profile', { name: newName });
-
-  setIsEditingName(false);
-};
+    setIsEditingName(false);
+  };
 
   const startEditing = () => {
       playSound('click');
@@ -214,7 +242,7 @@ const saveName = () => {
                       </h2>
                       <button onClick={() => { playSound('click'); setShowRules(false); }} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={24} /></button>
                   </div>
-
+                  {/* ... (содержимое правил без изменений) ... */}
                   <div className="space-y-6 text-sm text-slate-300 leading-relaxed">
                       <section>
                           <h3 className="flex items-center gap-2 font-bold text-white mb-2 uppercase tracking-wider text-xs">
@@ -318,7 +346,7 @@ const saveName = () => {
                 )}
             </div>
 
-            {/* Настройки (Звук + Правила) */}
+            {/* Настройки */}
             <div className="flex items-center gap-3 animate-fade-in-down delay-100">
                 <button 
                     onClick={handleToggleMute} 
@@ -367,11 +395,12 @@ const saveName = () => {
       )
   }
 
-  // LOBBY
+  // --- LOBBY VIEW ---
   return (
     <div className="flex flex-col h-screen relative">
       <Toast message={toastMsg} onClose={() => setToastMsg(null)} />
 
+      {/* Header Lobby */}
       <div className="p-6 pb-2 flex justify-between items-start z-10">
          <button onClick={() => { playSound('click'); setView('menu'); }} className="text-slate-400 hover:text-white transition-colors text-sm font-bold flex items-center gap-1">
              ← Меню
@@ -394,8 +423,19 @@ const saveName = () => {
       </div>
 
       <div className="px-6 py-2">
-          <div className="flex items-center gap-2 mb-3 text-purple-300 font-bold text-sm uppercase tracking-wide">
-              <Users size={16} /> <span>Игроки ({players.length})</span>
+          {/* Заголовок и кнопка приглашения */}
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex items-center gap-2 text-purple-300 font-bold text-sm uppercase tracking-wide">
+                <Users size={16} /> <span>Игроки ({players.length})</span>
+            </div>
+            {/* [NEW] INVITE BUTTON */}
+            <button 
+                onClick={handleInviteFriends}
+                className="flex items-center gap-1.5 bg-green-600/20 hover:bg-green-600/40 text-green-400 text-[10px] font-bold uppercase py-1 px-2.5 rounded-lg border border-green-500/30 transition-all active:scale-95"
+            >
+                <Share2 size={12} />
+                <span>Пригласить</span>
+            </button>
           </div>
           
           <div className="flex flex-wrap gap-1 overflow-y-auto max-h-[15vh]">
@@ -508,21 +548,9 @@ const saveName = () => {
         {!isHost && <div className="text-center text-slate-500 animate-pulse text-xs font-mono py-2 mb-2">ХОСТ НАСТРАИВАЕТ ИГРУ...</div>}
         
         {isHost ? (
-            players.length < 2 ? (
-                // <Button variant="secondary" disabled className="opacity-50 cursor-not-allowed">
-                //     <div className="flex items-center justify-center gap-2">
-                //         <AlertTriangle size={16} />
-                //         <span>МИНИМУМ 2 ИГРОКА</span>
-                //     </div>
-                // </Button>
-                <Button onClick={handleStartGame} variant="primary" className="shadow-[0_0_25px_rgba(6,182,212,0.4)]">
-                    НАЧАТЬ ИГРУ
-                </Button>
-            ) : (
-                <Button onClick={handleStartGame} variant="primary" className="shadow-[0_0_25px_rgba(6,182,212,0.4)]">
-                    НАЧАТЬ ИГРУ
-                </Button>
-            )
+             <Button onClick={handleStartGame} variant="primary" className="shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+                 НАЧАТЬ ИГРУ
+             </Button>
         ) : (
             <Button variant="secondary" disabled>ОЖИДАНИЕ ХОСТА</Button>
         )}
