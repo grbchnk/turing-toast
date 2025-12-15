@@ -84,10 +84,19 @@ export const Home = () => {
   useEffect(() => {
     socket.emit('check_reconnect');
 
-    socket.on('reconnect_success', ({ roomId, isHost, gameState }) => {
-        if (gameState === 'game_over' || gameState === 'finished') return;
-        playSound('whoosh');
-        navigate('/game', { state: { roomId, myProfile, isHost } });
+    socket.on('reconnect_success', ({ roomId, isHost, gameState, players }) => {
+        // [FIX] Если статус 'lobby', мы НЕ переходим на экран игры, а просто восстанавливаем лобби
+        if (gameState === 'lobby') {
+            setRoomId(roomId);
+            setIsHost(isHost);
+            if (players) setPlayers(players); // Восстанавливаем список игроков
+            setView('lobby');
+            playSound('whoosh');
+        } else {
+            // Если игра уже идет ('writing', 'voting', 'reveal') — тогда перекидываем в игру
+            playSound('whoosh');
+            navigate('/game', { state: { roomId, myProfile, isHost } });
+        }
     });
 
     socket.emit('get_topics');
