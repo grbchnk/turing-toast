@@ -380,7 +380,7 @@ const saveName = () => {
                       <div className="relative">
                         <Avatar
                             name={p.name}
-                            avatarUrl={p.avatar_url}
+                            avatarUrl={p.avatar || p.avatar_url}
                             size="sm"
                             />
                         {p.socketId === players[0]?.socketId && (
