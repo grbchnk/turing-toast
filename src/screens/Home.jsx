@@ -45,6 +45,7 @@ export const Home = () => {
   const [availableTopics, setAvailableTopics] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]); 
 
+
   const [myProfile, setMyProfile] = useState(() => {
     const saved = localStorage.getItem('toast_profile');
     if (saved) {
@@ -59,41 +60,38 @@ export const Home = () => {
       avatar: tgUser?.photo_url || null
     };
   });
+  
+  const prevPlayersRef = useRef([]);
 
-  // --- [NEW] AUTO JOIN LOGIC ---
   useEffect(() => {
-      // 1. Расширяем WebApp при запуске
       WebApp.expand();
 
-      // 2. Проверяем start_param (пришел ли юзер по ссылке приглашения)
       const startParam = WebApp.initDataUnsafe?.start_param;
       
       if (startParam && !hasAutoJoined.current) {
           console.log("Auto-joining room:", startParam);
           setJoinCode(startParam);
-          hasAutoJoined.current = true; // Ставим флаг, чтобы не пытаться войти дважды
-          
-          // Небольшая задержка, чтобы сокет успел инициализироваться
+          hasAutoJoined.current = true;
+
           setTimeout(() => {
               socket.emit('join_room', { roomId: startParam.toUpperCase() });
           }, 500);
       }
   }, []);
 
-  // --- SOCKET LISTENERS ---
   useEffect(() => {
     socket.emit('check_reconnect');
+  }, []); 
 
+  useEffect(() => {
     socket.on('reconnect_success', ({ roomId, isHost, gameState, players }) => {
-        // [FIX] Если статус 'lobby', мы НЕ переходим на экран игры, а просто восстанавливаем лобби
         if (gameState === 'lobby') {
             setRoomId(roomId);
             setIsHost(isHost);
-            if (players) setPlayers(players); // Восстанавливаем список игроков
+            if (players) setPlayers(players);
             setView('lobby');
-            playSound('whoosh');
+            // playSound('whoosh'); // <-- МОЖНО УБРАТЬ ЗВУК ЗДЕСЬ, если он раздражает при обновлении страницы
         } else {
-            // Если игра уже идет ('writing', 'voting', 'reveal') — тогда перекидываем в игру
             playSound('whoosh');
             navigate('/game', { state: { roomId, myProfile, isHost } });
         }
@@ -114,7 +112,7 @@ export const Home = () => {
         setPlayers(room.players);
         setIsHost(true);
         setView('lobby');
-        playSound('whoosh');
+        playSound('whoosh'); // Звук создания комнаты
     });
 
     socket.on('profile', (serverProfile) => {
@@ -137,17 +135,44 @@ export const Home = () => {
     });
 
     socket.on('update_players', (updatedPlayers) => {
-        if (updatedPlayers.length > players.length && view === 'lobby') {
-            playSound('pop');
+        const prev = prevPlayersRef.current;
+        
+        // Звуки играем только если это не инициализация (prev не пустой)
+        if (prev.length > 0) {
+            // 1. Кто-то зашел новый? (Длина увеличилась)
+            if (updatedPlayers.length > prev.length) {
+                playSound('join');
+            } 
+            // 2. Кто-то ушел насовсем? (Длина уменьшилась)
+            else if (updatedPlayers.length < prev.length) {
+                playSound('leave');
+            }
+            // 3. Длина та же, но изменился статус (например, свернул приложение)
+            else {
+                updatedPlayers.forEach(newP => {
+                    const oldP = prev.find(p => p.id === newP.id);
+                    if (oldP) {
+                        if (oldP.isOnline && !newP.isOnline) playSound('leave');
+                        if (!oldP.isOnline && newP.isOnline) playSound('join');
+                    }
+                });
+            }
+        } else {
+            if (updatedPlayers.length > 1) playSound('join'); 
         }
+        
+        prevPlayersRef.current = updatedPlayers;
         setPlayers(updatedPlayers);
     });
 
     socket.on('error', (msg) => {
         setToastMsg(msg);
         playSound('buzz');
-        // Если была ошибка при авто-входе, сбрасываем вид на меню
-        if (view !== 'lobby') setView('menu');
+        
+        // Перекидываем в меню, ТОЛЬКО если мы не в лобби И не на экране ввода кода
+        if (view !== 'lobby' && view !== 'join_code_input') {
+            setView('menu');
+        }
     });
 
     socket.on('game_started', () => {
@@ -188,6 +213,22 @@ export const Home = () => {
     });
   };
 
+  const handleLeaveRoom = () => {
+      playSound('click');
+      
+      if (roomId) {
+          socket.emit('leave_room', { roomId }); // Сообщаем серверу
+      }
+      
+      // Чистим локальное состояние
+      setRoomId(null);
+      setPlayers([]);
+      setIsHost(false);
+      setJoinCode('');
+      
+      setView('menu');
+  };
+
   const handleStartGame = () => {
       if (!isHost) return;
       playSound('click');
@@ -195,6 +236,11 @@ export const Home = () => {
           roomId, 
           settings: { rounds, timeLimit, topics: selectedTopics } 
       });
+  };
+
+  const handleSliderChange = (setter) => (e) => {
+    setter(e.target.value);
+    playSound('slider'); // Убедитесь, что файл slider.mp3 есть
   };
 
   const handleCopyCode = () => {
@@ -323,6 +369,7 @@ export const Home = () => {
     return (
       <div className="flex flex-col h-screen p-6 justify-center items-center relative overflow-hidden">
         {showRules && <RulesModal />}
+        <Toast message={toastMsg} onClose={() => setToastMsg(null)} />
 
         {/* Верхняя панель */}
         <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
@@ -400,7 +447,9 @@ export const Home = () => {
   
   if (view === 'join_code_input') {
       return (
-          <div className="flex flex-col h-screen p-6 justify-center">
+          <div className="flex flex-col h-screen p-6 justify-center relative">
+              <Toast message={toastMsg} onClose={() => setToastMsg(null)} />
+                
               <h2 className="text-2xl font-bold text-center mb-6">Введи код</h2>
               <input 
                 value={joinCode}
@@ -421,7 +470,7 @@ export const Home = () => {
 
       {/* Header Lobby */}
       <div className="p-6 pb-2 flex justify-between items-start z-10">
-         <button onClick={() => { playSound('click'); setView('menu'); }} className="text-slate-400 hover:text-white transition-colors text-sm font-bold flex items-center gap-1">
+         <button onClick={handleLeaveRoom} className="text-slate-400 hover:text-white transition-colors text-sm font-bold flex items-center gap-1">
              ← Меню
          </button>
          
@@ -441,7 +490,7 @@ export const Home = () => {
          </div>
       </div>
 
-      <div className="px-6 py-2">
+      <div className="px-6 py-4">
           {/* Заголовок и кнопка приглашения */}
           <div className="flex justify-between items-start mb-3">
             <div className="flex items-center gap-2 text-purple-300 font-bold text-sm uppercase tracking-wide">
@@ -476,7 +525,7 @@ export const Home = () => {
           </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-24">
+      <div className="flex-1 overflow-y-auto px-6 py-4 pb-24">
           {isHost ? (
               <>
                 <div className="mb-4 p-4 rounded-xl glass">
@@ -491,7 +540,7 @@ export const Home = () => {
                         </div>
                         <input 
                            type="range" min="1" max="10" value={rounds} 
-                           onChange={(e) => setRounds(e.target.value)}
+                           onChange={handleSliderChange(setRounds)}
                            className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                         />
                     </div>
@@ -503,7 +552,7 @@ export const Home = () => {
                         </div>
                         <input 
                            type="range" min="30" max="120" step="10" value={timeLimit} 
-                           onChange={(e) => setTimeLimit(e.target.value)}
+                           onChange={handleSliderChange(setTimeLimit)} 
                            className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-400"
                         />
                     </div>
@@ -567,9 +616,18 @@ export const Home = () => {
         {!isHost && <div className="text-center text-slate-500 animate-pulse text-xs font-mono py-2 mb-2">ХОСТ НАСТРАИВАЕТ ИГРУ...</div>}
         
         {isHost ? (
-             <Button onClick={handleStartGame} variant="primary" className="shadow-[0_0_25px_rgba(6,182,212,0.4)]">
-                 НАЧАТЬ ИГРУ
-             </Button>
+            players.length < 2 ? (
+                <Button variant="secondary" disabled className="opacity-50 cursor-not-allowed">
+                    <div className="flex items-center justify-center gap-2">
+                        <AlertTriangle size={16} />
+                        <span>МИНИМУМ 2 ИГРОКА</span>
+                    </div>
+                </Button>
+            ) : (
+                <Button onClick={handleStartGame} variant="primary" className="shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+                    НАЧАТЬ ИГРУ
+                </Button>
+            )
         ) : (
             <Button variant="secondary" disabled>ОЖИДАНИЕ ХОСТА</Button>
         )}

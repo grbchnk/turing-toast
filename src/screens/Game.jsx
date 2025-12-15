@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { socket } from '../socket';
 import { Button } from '../components/Button';
@@ -52,13 +52,39 @@ export const Game = () => {
 
   const [reactions, setReactions] = useState([]);
 
+  const prevPlayersRef = useRef([]);
+
   // --- INIT & SOCKETS ---
   useEffect(() => {
       if (!roomId || !myProfile) navigate('/');
   }, [roomId, myProfile, navigate]);
 
   useEffect(() => {
-    socket.on('update_players', (updatedPlayers) => setPlayers(updatedPlayers));
+    socket.on('update_players', (updatedPlayers) => {
+        const prev = prevPlayersRef.current;
+        
+        // Проверяем изменения, только если это не первая загрузка данных
+        if (prev.length > 0) {
+            updatedPlayers.forEach(newP => {
+                const oldP = prev.find(p => p.id === newP.id);
+                
+                if (oldP) {
+                    // Был онлайн, стал оффлайн -> ЗВУК ВЫХОДА
+                    if (oldP.isOnline && !newP.isOnline) {
+                        playSound('leave'); 
+                    }
+                    // Был оффлайн, стал онлайн -> ЗВУК ВХОДА (Реконнект)
+                    else if (!oldP.isOnline && newP.isOnline) {
+                        playSound('join');
+                    }
+                }
+            });
+        }
+        
+        // Обновляем реф и стейт
+        prevPlayersRef.current = updatedPlayers;
+        setPlayers(updatedPlayers);
+    });
     
     socket.on('player_submitted', (playerId) => {
         setSubmittedIds(prev => [...prev, playerId]);
@@ -567,7 +593,7 @@ export const Game = () => {
             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 pb-24">
                 {shuffledAnswers.map(ans => {
                     const isMyOwn = ans.authorId === myId;
-                    const author = ans.authorId === 'ai' ? { name: 'AI Bot', isAi: true } : players.find(p => p.id === ans.authorId);
+                    const author = ans.authorId === 'ai' ? { name: 'AI', isAi: true, isOnline: true } : players.find(p => p.id === ans.authorId);
                     const myGuess = guesses[ans.id];
                     const othersForThis = roundResults.votes[ans.id] || [];
                     const getVoter = (playerId) => players.find(pl => pl.id === playerId);
@@ -619,12 +645,20 @@ export const Game = () => {
                         <div key={ans.id} className={`flex w-full ${isMyOwn ? 'justify-end' : 'justify-start'}`}>
                             <div className={`flex items-start gap-3 max-w-[98%] ${isMyOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                                 <div className="shrink-0 flex flex-col items-center">
-                                    <Avatar
-                                        name={author?.name}
-                                        isAi={author?.isAi}
-                                        avatarUrl={!author?.isAi ? author?.avatar : undefined}
-                                        size="sm"
+                                    <div className={`transition-all duration-500 ${!author?.isOnline && !author?.isAi ? 'grayscale opacity-50' : ''}`}>
+                                        {/* ^^^ ДОБАВЛЕН КЛАСС ВЫШЕ */}
+                                        <Avatar
+                                            name={author?.name}
+                                            isAi={author?.isAi}
+                                            avatarUrl={author?.avatar}
+                                            size="sm"
                                         />
+                                    </div>
+                                    
+                                    {/* Можно добавить иконку "Нет сети" */}
+                                    {!author?.isOnline && !author?.isAi && (
+                                        <span className="text-[8px] text-red-400 font-bold bg-black/50 px-1 rounded mt-[-5px] z-10">OFFLINE</span>
+                                    )}
                                 </div>
                                 {/* [UPDATED] Применяем cardStyleClass здесь */}
                                 <div className={`relative p-4 rounded-2xl border min-w-[140px] w-full transition-all duration-500 ${isMyOwn ? 'bg-slate-800/50 border-slate-600 rounded-tr-none text-slate-300' : `rounded-tl-none ${cardStyleClass}`}`}>
@@ -699,9 +733,8 @@ export const Game = () => {
                         </div>
                     );
                 })}
-            </div>
 
-            <div className="fixed bottom-24 left-0 right-0 flex justify-center items-center gap-4 z-50 pointer-events-none">
+                <div className="fixed bottom-24 left-0 right-0 flex justify-center items-center gap-4 z-50 pointer-events-none">
                 <div className="backdrop-blur-md p-2 rounded-full flex gap-3 pointer-events-auto shadow-2xl animate-fade-in-up">
                     {['😂', '❤️', '🤔', '🤯', '🤡'].map(emoji => (
                         <button 
@@ -714,6 +747,9 @@ export const Game = () => {
                     ))}
                 </div>
             </div>
+            </div>
+
+            
             
             <div className="p-4  z-30">
                 {initialIsHost ? (

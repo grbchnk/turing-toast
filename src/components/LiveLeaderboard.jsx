@@ -1,6 +1,6 @@
 import React from 'react';
 import { Avatar } from './Avatar';
-import { Check } from 'lucide-react';
+import { Check, WifiOff } from 'lucide-react'; // [1] Добавили WifiOff
 
 export const LiveLeaderboard = ({ players, submittedIds = [], roundDeltas = {} }) => {
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
@@ -18,26 +18,37 @@ export const LiveLeaderboard = ({ players, submittedIds = [], roundDeltas = {} }
         {sortedPlayers.map((p, index) => {
             const isDone = submittedIds.includes(p.id);
             const delta = roundDeltas[p.id];
+            
+            // [2] Проверяем статус (если undefined, считаем что online)
+            const isOnline = p.isOnline !== false; 
 
             return (
               <div key={p.id} id={`player-node-${p.id}`} className="flex flex-col items-center relative group transition-all duration-500 ease-out">
                 
-                {/* ПРАВКА №2: Имя игрока сверху */}
                 <span className="text-[9px] font-bold text-slate-400 mb-1 max-w-[60px] truncate">
                     {p.id === 99 ? 'Вы' : p.name}
                 </span>
 
                 {/* Обертка аватарки */}
                 <div className="relative">
-                    <div className={`rounded-full border-2 p-[2px] transition-all duration-300 ${getBorderColor(index)}`}>
+                    {/* [3] Добавляем grayscale и opacity, если оффлайн */}
+                    <div className={`rounded-full border-2 p-[2px] transition-all duration-300 ${getBorderColor(index)} ${!isOnline ? 'grayscale opacity-60' : ''}`}>
                         <div className={isDone ? "brightness-110" : ""}>
                             <Avatar name={p.name} size="sm" avatarUrl={p.avatar}/>
                         </div>
                     </div>
 
-                    {isDone && (
+                    {/* [4] Если ОНЛАЙН и СДАЛ ответ - зеленая галочка */}
+                    {isOnline && isDone && (
                         <div className="absolute -bottom-1 -right-1 bg-green-500 text-black rounded-full p-[2px] border-2 border-slate-900 shadow-[0_0_8px_lime] animate-scale-in">
                             <Check size={10} strokeWidth={4} />
+                        </div>
+                    )}
+
+                    {/* [5] Если ОФФЛАЙН - красный значок WifiOff */}
+                    {!isOnline && (
+                        <div className="absolute -bottom-1 -right-1 bg-red-500 text-white rounded-full p-[2px] border-2 border-slate-900 shadow-sm z-10 animate-pulse">
+                            <WifiOff size={10} strokeWidth={3} />
                         </div>
                     )}
                 </div>
