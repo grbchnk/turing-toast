@@ -39,8 +39,9 @@ export const Home = () => {
   const [selectedTopics, setSelectedTopics] = useState([]); 
 
   // Инициализируем пустым/гостевым профилем — сервер пришлёт актуальный profile событием
+// Инициализируем временным профилем — сервер сразу пришлёт актуальный через 'profile' событие
 const [myProfile, setMyProfile] = useState(() => {
-  // 1. ВСЕГДА сначала localStorage
+  // Попытка взять из localStorage для мгновенного отображения
   const saved = localStorage.getItem('toast_profile');
   if (saved) {
     try {
@@ -48,21 +49,12 @@ const [myProfile, setMyProfile] = useState(() => {
     } catch {}
   }
 
-  // 2. Telegram — ТОЛЬКО для первичного рендера
+  // Fallback на время загрузки
   const tgUser = WebApp.initDataUnsafe?.user;
-  if (tgUser) {
-    return {
-      id: String(tgUser.id),
-      name: tgUser.first_name || tgUser.username || 'Player',
-      avatar: tgUser.photo_url || null
-    };
-  }
-
-  // 3. fallback
   return {
-    id: 'guest',
-    name: 'Guest',
-    avatar: null
+    id: tgUser?.id ? String(tgUser.id) : 'guest',
+    name: tgUser?.first_name || tgUser?.username || 'Загрузка...',
+    avatar: tgUser?.photo_url || null
   };
 });
 
