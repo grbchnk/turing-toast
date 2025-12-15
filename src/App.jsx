@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import WebApp from '@twa-dev/sdk';
 import { socket } from './socket';
@@ -23,17 +23,20 @@ function App() {
   }, []);
 
   return (
-    <HashRouter>
-      <div className="max-w-md mx-auto min-h-screen shadow-2xl overflow-hidden">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/game" element={<Game />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
-      </div>
-    </HashRouter>
+    // Обертка с relative, чтобы позиционировать фон
+    // text-white задаем глобально, чтобы не писать везде
+    <div className="relative min-h-screen overflow-hidden text-white selection:bg-cyan-500/30 font-sans">
+      <HashRouter>
+        <div className="max-w-md mx-auto min-h-screen relative z-10">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/game" element={<Game />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </div>
+      </HashRouter>
+    </div>
   );
 }
-
 
 export default App;

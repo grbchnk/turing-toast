@@ -2,22 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 1. ТВОЙ ОРИГИНАЛЬНЫЙ ФОН */
 body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  
   /* Глубокий космический фон */
   background-color: #0b0c15; 
   background-image: 
-    radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.25) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 50%);
+    radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.5) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.35) 0%, transparent 50%);
   background-attachment: fixed;
   color: #e2e8f0;
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
 }
 
-/* Стекло */
+/* 2. ТВОИ ЛЮБИМЫЕ ПОЛОСКИ (SCANLINES) */
+/* Статичные, аккуратные, как ты хотел */
+.scanlines {
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,0) 50%,
+    rgba(0,0,0,0.1) 50%,
+    rgba(0,0,0,0.1)
+  );
+  background-size: 100% 4px;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 0; /* Лежат поверх фона, но под контентом */
+  opacity: 0.6;
+}
+
+/* --- UI КОМПОНЕНТЫ (Стекло и прочее) --- */
+
 .glass {
-  background: rgba(30, 41, 59, 0.4); /* Полупрозрачный slate-800 */
+  background: rgba(30, 41, 59, 0.4); 
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -30,40 +51,34 @@ body {
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
 }
 
-/* Убираем скроллбар но оставляем прокрутку */
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Анимации */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in-up {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-/* Стили для заголовка "ТОСТ ТЬЮРИНГА" */
 .text-neon-outline {
-  color: transparent; /* Прозрачная заливка */
-  -webkit-text-stroke: 2px #c084fc; /* Фиолетовая обводка (purple-400) */
-  text-shadow: 
-    0 0 10px rgba(192, 132, 252, 0.5),
-    0 0 20px rgba(192, 132, 252, 0.3);
+  color: transparent; 
+  -webkit-text-stroke: 2px #c084fc; 
+  text-shadow: 0 0 10px rgba(192, 132, 252, 0.5), 0 0 20px rgba(192, 132, 252, 0.3);
 }
 
-/* Анимация парения для картинки */
+/* --- АНИМАЦИИ (Только для интерфейса) --- */
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in-up { animation: fadeIn 0.5s ease-out forwards; }
+
 @keyframes float {
   0% { transform: translateY(0px) rotate(0deg); }
   50% { transform: translateY(-15px) rotate(2deg); }
   100% { transform: translateY(0px) rotate(0deg); }
 }
+.animate-float { animation: float 4s ease-in-out infinite; }
 
-.animate-float {
-  animation: float 4s ease-in-out infinite;
+@keyframes rocket-launch {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  10% { opacity: 1; transform: translateY(15px) scale(1.2); }
+  30% { transform: translateY(15px) scale(1); }
+  100% { opacity: 0; transform: translateY(-120vh) scale(0.5); }
+}
+.animate-rocket {
+  animation: rocket-launch 2.5s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  will-change: transform, opacity;
 }

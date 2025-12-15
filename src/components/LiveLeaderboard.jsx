@@ -20,7 +20,7 @@ export const LiveLeaderboard = ({ players, submittedIds = [], roundDeltas = {} }
             const delta = roundDeltas[p.id];
 
             return (
-              <div key={p.id} className="flex flex-col items-center relative group">
+              <div key={p.id} id={`player-node-${p.id}`} className="flex flex-col items-center relative group transition-all duration-500 ease-out">
                 
                 {/* ПРАВКА №2: Имя игрока сверху */}
                 <span className="text-[9px] font-bold text-slate-400 mb-1 max-w-[60px] truncate">

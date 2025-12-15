@@ -50,6 +50,8 @@ export const Game = () => {
   const [finalStats, setFinalStats] = useState(null);
   const [loadingText, setLoadingText] = useState(LOADING_TEXTS[0]);
 
+  const [reactions, setReactions] = useState([]);
+
   // --- INIT & SOCKETS ---
   useEffect(() => {
       if (!roomId || !myProfile) navigate('/');
@@ -128,6 +130,29 @@ export const Game = () => {
         setFinalStats(data.achievements);
     });
 
+    socket.on('animate_reaction', (data) => {
+        // 1. Ищем DOM-элемент аватарки того, кто отправил
+        const element = document.getElementById(`player-node-${data.senderId}`);
+        
+        let startX = 50; // По дефолту центр (на случай ошибки)
+        let startY = 10; // По дефолту сверху
+
+        if (element) {
+            const rect = element.getBoundingClientRect();
+            // Вычисляем центр аватарки по X (в пикселях)
+            startX = rect.left + (rect.width / 2);
+            // Вычисляем низ аватарки по Y (в пикселях), чтобы эмодзи вылетал снизу неё
+            startY = rect.bottom;
+        }
+
+        // Добавляем координаты (x, y) в объект реакции
+        setReactions(prev => [...prev, { ...data, x: startX, y: startY }]);
+
+        setTimeout(() => {
+            setReactions(prev => prev.filter(r => r.id !== data.id));
+        }, 2500);
+    });
+
     socket.emit('request_game_state', { roomId });
 
     return () => {
@@ -166,6 +191,11 @@ export const Game = () => {
       socket.emit('submit_votes', { roomId, votes: guesses });
       setHasVoted(true);
   };
+  
+    const sendReaction = (emoji) => {
+        playSound('pop'); // Тихий звук
+        socket.emit('send_reaction', { roomId, emoji });
+    };
 
   const handleNextRoundRequest = () => {
       if (initialIsHost) {
@@ -176,23 +206,31 @@ export const Game = () => {
 
   const handleSelectVote = (ansId, type, playerId = null) => {
       if (hasVoted) return;
-      playSound('click'); // [NEW]
+      playSound('click');
       
       setGuesses(prev => {
           const newState = { ...prev };
-          const currentVote = newState[ansId];
 
-          if (currentVote && currentVote.type === type && currentVote.playerId === playerId) {
+          // 1. Проверяем, был ли этот "персонаж" (AI или конкретный Игрок) уже использован где-то?
+          const existingKey = Object.keys(newState).find(key => {
+              const vote = newState[key];
+              if (type === 'ai' && vote.type === 'ai') return true;
+              if (type === 'human' && vote.type === 'human' && vote.playerId === playerId) return true;
+              return false;
+          });
+
+          // 2. Если мы кликнули по ТОЙ ЖЕ карточке тем же персонажем -> это отмена выбора (Toggle off)
+          if (existingKey === ansId) {
               delete newState[ansId];
               return newState;
           }
 
-          Object.keys(newState).forEach(key => {
-              const vote = newState[key];
-              if (type === 'ai' && vote.type === 'ai') delete newState[key];
-              if (type === 'human' && vote.type === 'human' && vote.playerId === playerId) delete newState[key];
-          });
+          // 3. Если персонаж был на ДРУГОЙ карточке -> удаляем его оттуда (Перенос)
+          if (existingKey) {
+              delete newState[existingKey];
+          }
           
+          // 4. Записываем выбор на новую карточку (перезаписывая, если там кто-то был)
           newState[ansId] = { type, playerId };
           return newState;
       });
@@ -541,6 +579,8 @@ export const Game = () => {
                         else scoreDelta = -50;
                     }
 
+                    
+
                     const deceptionPoints = isMyOwn && roundResults.deltas[myId] > 0 
                         ? othersForThis.filter(v => v.isDeceived).length * 108 
                         : 0;
@@ -551,6 +591,25 @@ export const Game = () => {
                         else borderClass = 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]';
                     }
                     if (ans.authorId === 'ai') borderClass = 'border-purple-500/50 shadow-[0_0_10px_purple]';
+
+                    let cardStyleClass = 'bg-slate-800 border-slate-700 shadow-none'; // Дефолтный стиль
+                    
+                    if (!isMyOwn && myGuess) {
+                        if (scoreDelta > 0) {
+                            // Угадал: Зеленоватый фон + яркая граница
+                            cardStyleClass = 'bg-green-900/50 border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.2)]';
+                        } else {
+                            // Ошибся: Красноватый фон + яркая граница
+                            cardStyleClass = 'bg-red-900/50 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]';
+                        }
+                    }
+                    // Если это ответ бота (подсветка фиолетовым для красоты, если хотим выделить)
+                    if (ans.authorId === 'ai') {
+                         // Если мы угадали бота, то зеленый стиль выше перекроет это (так как scoreDelta > 0),
+                         // но если никто не угадал, можно оставить легкую подсветку или обычную.
+                         // Оставим приоритет за результатом игрока.
+                         if (!myGuess) cardStyleClass = 'bg-slate-800 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.2)]';
+                    }
 
                     const correctVotes = othersForThis.filter(v => v.isCorrect);
                     const deceivedVotes = othersForThis.filter(v => !v.isCorrect && v.isDeceived);
@@ -567,36 +626,33 @@ export const Game = () => {
                                         size="sm"
                                         />
                                 </div>
-                                <div className={`relative p-4 rounded-2xl border min-w-[140px] w-full ${isMyOwn ? 'bg-slate-800/50 border-slate-600 rounded-tr-none text-slate-300' : `bg-slate-800 rounded-tl-none ${borderClass}`}`}>
+                                {/* [UPDATED] Применяем cardStyleClass здесь */}
+                                <div className={`relative p-4 rounded-2xl border min-w-[140px] w-full transition-all duration-500 ${isMyOwn ? 'bg-slate-800/50 border-slate-600 rounded-tr-none text-slate-300' : `rounded-tl-none ${cardStyleClass}`}`}>
                                     {!isMyOwn && <div className={`text-[10px] font-bold mb-1 uppercase tracking-wide ${author?.isAi ? 'text-purple-400' : 'text-slate-400'}`}>{author?.isAi ? 'Тостик' : author?.name}</div>}
                                     
                                     <p className="text-sm text-white leading-relaxed">{ans.text}</p>
                                     
-                                    {myGuess && !isMyOwn && <div className={`absolute -top-3 -right-2 px-2 py-1 rounded-lg border shadow-lg transform rotate-6 font-black text-sm z-10 flex items-center gap-1 ${scoreDelta > 0 ? 'bg-green-900 text-green-300 border-green-500' : 'bg-red-900 text-red-300 border-red-500'}`}>{scoreDelta > 0 ? '+' : ''}{scoreDelta}</div>}
+                                    {/* Бейдж с очками */}
+                                    {myGuess && !isMyOwn && <div className={`absolute -top-3 -right-2 px-2 py-1 rounded-lg border shadow-lg transform rotate-6 font-black text-sm z-10 flex items-center gap-1 ${scoreDelta > 0 ? 'bg-green-500 text-black border-green-400' : 'bg-red-500 text-white border-red-600'}`}>{scoreDelta > 0 ? '+' : ''}{scoreDelta}</div>}
                                     
                                     {isMyOwn && deceptionPoints > 0 && (
-                                         <div className="absolute -top-4 -left-2 px-2 py-1 rounded-lg bg-purple-900 border border-purple-500 text-purple-200 text-xs font-bold shadow-lg transform -rotate-3 z-10 flex items-center gap-1">
-                                             <Drama size={12} /> <span>Обман: +{deceptionPoints}</span>
+                                         <div className="absolute -top-4 -left-2 px-2 py-1 rounded-lg bg-purple-600 border border-purple-400 text-white text-xs font-bold shadow-lg transform -rotate-3 z-10 flex items-center gap-1">
+                                             <Drama size={12} /> <span>+{deceptionPoints}</span>
                                          </div>
                                     )}
 
-                                    {/* Votes Visualization */}
+                                    {/* Votes Visualization - [UPDATED] Avatars made bigger (size="xs" -> size="sm") */}
                                     {(othersForThis.length > 0) && (
                                         <div className="mt-3 pt-2 border-t border-white/5 flex flex-wrap gap-y-2 gap-x-4">
                                             {correctVotes.length > 0 && (
                                                 <div className="flex items-center gap-1">
-                                                    <CheckCircle size={12} className="text-green-500/70" />
-                                                    <div className="flex -space-x-1">
+                                                    <CheckCircle size={14} className="text-green-500/70" />
+                                                    <div className="flex -space-x-2"> {/* space-x-2 для наложения побольше */}
                                                         {correctVotes.map((vote, i) => {
                                                         const voter = getVoter(vote.playerId);
-
                                                         return (
-                                                            <div key={i} className="rounded-full border border-slate-900 relative z-10">
-                                                            <Avatar
-                                                                name={voter?.name}
-                                                                avatarUrl={voter?.avatar}
-                                                                size="xs"
-                                                            />
+                                                            <div key={i} className="rounded-full border-2 border-slate-900 relative z-10">
+                                                                <Avatar name={voter?.name} avatarUrl={voter?.avatar} size="xs" /> 
                                                             </div>
                                                         );
                                                         })}
@@ -606,18 +662,13 @@ export const Game = () => {
 
                                             {deceivedVotes.length > 0 && (
                                                 <div className="flex items-center gap-1">
-                                                    <Drama size={12} className="text-purple-400/80" />
-                                                    <div className="flex -space-x-1">
+                                                    <Drama size={14} className="text-purple-400/80" />
+                                                    <div className="flex -space-x-2">
                                                         {deceivedVotes.map((vote, i) => {
                                                         const voter = getVoter(vote.playerId);
-
                                                         return (
-                                                            <div key={i} className="rounded-full border border-purple-900/50 ring-1 ring-purple-500 relative z-10 grayscale-[30%]">
-                                                            <Avatar
-                                                                name={voter?.name}
-                                                                avatarUrl={voter?.avatar}
-                                                                size="xs"
-                                                            />
+                                                            <div key={i} className="rounded-full border-2 border-purple-900/50 ring-1 ring-purple-500 relative z-10 grayscale-[30%]">
+                                                                <Avatar name={voter?.name} avatarUrl={voter?.avatar} size="xs" />
                                                             </div>
                                                         );
                                                         })}
@@ -628,18 +679,13 @@ export const Game = () => {
 
                                             {wrongVotes.length > 0 && (
                                                 <div className="flex items-center gap-1">
-                                                    <XCircle size={12} className="text-red-500/70" />
-                                                    <div className="flex -space-x-1">
+                                                    <XCircle size={14} className="text-red-500/70" />
+                                                    <div className="flex -space-x-2">
                                                         {wrongVotes.map((vote, i) => {
                                                         const voter = getVoter(vote.playerId);
-
                                                         return (
-                                                            <div key={i} className="rounded-full border border-slate-900 relative z-10 grayscale opacity-70">
-                                                            <Avatar
-                                                                name={voter?.name}
-                                                                avatarUrl={voter?.avatar}
-                                                                size="xs"
-                                                            />
+                                                            <div key={i} className="rounded-full border-2 border-slate-900 relative z-10 grayscale opacity-70">
+                                                                <Avatar name={voter?.name} avatarUrl={voter?.avatar} size="xs" />
                                                             </div>
                                                         );
                                                         })}
@@ -653,6 +699,20 @@ export const Game = () => {
                         </div>
                     );
                 })}
+            </div>
+
+            <div className="fixed bottom-24 left-0 right-0 flex justify-center items-center gap-4 z-50 pointer-events-none">
+                <div className="backdrop-blur-md p-2 rounded-full flex gap-3 pointer-events-auto shadow-2xl animate-fade-in-up">
+                    {['😂', '❤️', '🤔', '🤯', '🤡'].map(emoji => (
+                        <button 
+                            key={emoji}
+                            onClick={() => sendReaction(emoji)}
+                            className="w-12 h-12 flex items-center justify-center bg-slate-800 rounded-full border border-slate-600 hover:bg-slate-700 hover:scale-110 hover:border-cyan-400 active:scale-95 transition-all text-2xl shadow-lg"
+                        >
+                            {emoji}
+                        </button>
+                    ))}
+                </div>
             </div>
             
             <div className="p-4  z-30">
@@ -714,6 +774,21 @@ export const Game = () => {
                     )}
                 </div>
             )}
+        </div>
+        <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
+            {reactions.map(r => (
+                <div 
+                    key={r.id} 
+                    className="absolute text-4xl animate-rocket drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]" 
+                    style={{ 
+                        left: r.x,    
+                        top: r.y + 20,     
+                        transform: 'translateX(-50%)' 
+                    }}
+                >
+                    {r.emoji}
+                </div>
+            ))}
         </div>
       </div>
   );

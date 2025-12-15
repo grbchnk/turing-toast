@@ -82,7 +82,16 @@ export const Home = () => {
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
+    socket.emit('check_reconnect');
+
+    socket.on('reconnect_success', ({ roomId, isHost, gameState }) => {
+        playSound('whoosh');
+        // Сразу кидаем в игру. Game.jsx сам запросит актуальное состояние (state request)
+        navigate('/game', { state: { roomId, myProfile, isHost } });
+    });
+
     socket.emit('get_topics');
+    
 
     socket.on('topics_list', (list) => {
         setAvailableTopics(list);
@@ -138,6 +147,7 @@ export const Home = () => {
     });
 
     return () => {
+        socket.off('reconnect_success');
         socket.off('topics_list');
         socket.off('room_created');
         socket.off('joined_room');
