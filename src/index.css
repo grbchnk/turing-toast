@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  /* Глубокий черный фон с синим и фиолетовым свечением */
+  background-color: #020617; 
+  background-image: 
+    radial-gradient(circle at 50% 0%, #312e81 0%, transparent 45%),
+    radial-gradient(circle at 100% 100%, #4c1d95 0%, transparent 35%);
+  background-attachment: fixed; /* Чтобы фон не ездил при скролле */
+  color: #f8fafc;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* Стекло */
+.glass {
+  background: rgba(30, 41, 59, 0.4); /* Полупрозрачный slate-800 */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.glass-active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+}
+
+/* Убираем скроллбар но оставляем прокрутку */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Стили для заголовка "ТОСТ ТЬЮРИНГА" */
+.text-neon-outline {
+  color: transparent; /* Прозрачная заливка */
+  -webkit-text-stroke: 2px #c084fc; /* Фиолетовая обводка (purple-400) */
+  text-shadow: 
+    0 0 10px rgba(192, 132, 252, 0.5),
+    0 0 20px rgba(192, 132, 252, 0.3);
+}
+
+/* Анимация парения для картинки */
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
