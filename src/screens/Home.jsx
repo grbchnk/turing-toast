@@ -85,8 +85,8 @@ export const Home = () => {
     socket.emit('check_reconnect');
 
     socket.on('reconnect_success', ({ roomId, isHost, gameState }) => {
+        if (gameState === 'game_over' || gameState === 'finished') return;
         playSound('whoosh');
-        // Сразу кидаем в игру. Game.jsx сам запросит актуальное состояние (state request)
         navigate('/game', { state: { roomId, myProfile, isHost } });
     });
 
