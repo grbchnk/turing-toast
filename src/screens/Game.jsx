@@ -14,7 +14,22 @@ const LOADING_TEXTS = [
     "Намазываю масло на нейросеть...",
     "Тост придумывает ответ...",
     "Хрустящая корочка генерируется...",
-    "Ищу смешные ответы в интернете..."
+    "Ищу смешные ответы в интернете...",
+  "Тостик подрумянивает правду...",
+  "Крошки фактов разлетаются...",
+  "Поджариваю логику до золотистой корочки...",
+  "Тостик делает вид, что знает ответ...",
+  "Ответ застрял в тостере...",
+  "Добавляю джем из сомнений...",
+  "Тостик путается в крошках истины...",
+  "Переворачиваю ответ другой стороной...",
+  "Нейросеть слегка пригорела...",
+  "Тостик врёт с умным видом...",
+  "Смешиваю факты и выдумку...",
+  "Ответ почти готов, но это не точно...",
+  "Тостик шепчется с тостером...",
+  "Подрумяниваю абсурд...",
+  "Ответ хрустит, но не факт что правильный..."
 ];
 
 // Набор реакций (6 штук)
@@ -25,6 +40,7 @@ export const Game = () => {
   const location = useLocation();
   
   const { roomId, myProfile, isHost: initialIsHost } = location.state || {};
+  const [isHost, setIsHost] = useState(initialIsHost || false); // <--- ТЕПЕРЬ ЭТО STATE
 
   // --- STATE ---
   const [phase, setPhase] = useState('loading'); 
@@ -76,6 +92,22 @@ export const Game = () => {
         }
         prevPlayersRef.current = updatedPlayers;
         setPlayers(updatedPlayers);
+    });
+
+    socket.on('host_transferred', ({ newHostId }) => {
+        if (myProfile.id === newHostId) {
+            setIsHost(true);
+            playSound('ding'); // Звук, что ты стал главным
+        } else {
+            setIsHost(false);
+        }
+    });
+
+    socket.on('reconnect_success', (data) => {
+        // Если сервер при реконнекте говорит, кто сейчас хост
+        if (data.isHost !== undefined) {
+             setIsHost(data.isHost);
+        }
     });
     
     socket.on('player_submitted', (playerId) => {
@@ -227,7 +259,7 @@ export const Game = () => {
     };
 
   const handleNextRoundRequest = () => {
-      if (initialIsHost) {
+      if (isHost) {
           playSound('click'); 
           socket.emit('next_round_request', { roomId });
       }
@@ -686,7 +718,7 @@ export const Game = () => {
             </div>
 
             <div className="p-4 z-30">
-                {initialIsHost ? (
+                {isHost ? (
                     <Button onClick={handleNextRoundRequest} variant="primary">{currentRound < totalRounds ? 'СЛЕДУЮЩИЙ РАУНД' : 'ЗАВЕРШИТЬ ИГРУ'}</Button>
                 ) : (
                     <div className="text-center text-slate-500 text-xs animate-pulse uppercase tracking-widest">Ожидание хоста...</div>
@@ -755,7 +787,7 @@ export const Game = () => {
                     </div>
                     <p className="text-xl text-white font-bold mb-2">Ответ принят!</p>
                     <p className="text-sm text-slate-400 mb-8">Ждем остальных...</p>
-                    {initialIsHost && (
+                    {isHost && (
                         <button onClick={() => socket.emit('dev_skip_timer', { roomId })} className="px-4 py-2 rounded-full border border-slate-700 text-xs text-slate-500 hover:text-white hover:border-white transition-colors">Dev: Skip Timer ⏩</button>
                     )}
                 </div>
