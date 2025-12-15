@@ -160,13 +160,18 @@ export const Home = () => {
       );
   };
 
-  const saveName = () => {
-      if (tempName.trim().length > 0) {
-          playSound('click');
-          setMyProfile(prev => ({ ...prev, name: tempName.trim().substring(0, 12) }));
-      }
-      setIsEditingName(false);
-  };
+const saveName = () => {
+  const newName = tempName.trim().substring(0, 12);
+  if (!newName) return;
+
+  playSound('click');
+  setMyProfile(prev => ({ ...prev, name: newName }));
+
+  // Отправка на сервер
+  socket.emit('update_profile', { name: newName });
+
+  setIsEditingName(false);
+};
 
   const startEditing = () => {
       playSound('click');
@@ -255,10 +260,10 @@ export const Home = () => {
                 <div className="relative group cursor-pointer" onClick={startEditing}>
                     <div className="ring-2 ring-purple-500/50 rounded-full p-0.5 hover:ring-cyan-400 transition-all">
                         <Avatar
-                            name={p.name}
-                            avatarUrl={p.avatar_url}
+                            name={myProfile.name}
+                            avatarUrl={myProfile.avatar}
                             size="md"
-                            />
+                        />
                     </div>
                 </div>
                 
@@ -307,7 +312,7 @@ export const Home = () => {
         </div>
 
         <div className="text-center z-10 mb-12 flex flex-col items-center animate-fade-in-up">
-          <img src="/toast.png" alt="Toast" className="w-40 h-40 object-contain mb-4 animate-float drop-shadow-[0_0_25px_rgba(192,132,252,0.4)]" />
+          <img src="./toast.png" alt="Toast" className="w-40 h-40 object-contain mb-4 animate-float drop-shadow-[0_0_25px_rgba(192,132,252,0.4)]" />
           <h1 className="text-6xl font-black italic tracking-tighter text-neon-outline uppercase leading-[0.9]">
             ТОСТ<br/>ТЬЮРИНГА
           </h1>
