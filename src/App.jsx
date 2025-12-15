@@ -1,37 +1,51 @@
 import React, { useEffect, useState } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom'; 
-import WebApp from '@twa-dev/sdk'; // <--- Импорт SDK
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import WebApp from '@twa-dev/sdk';
 import { socket } from './socket';
 import { Home } from './screens/Home';
 import { Game } from './screens/Game';
 
 function App() {
-  useEffect(() => {
-    // 1. Говорим Телеграму, что приложение загрузилось
-    WebApp.ready();
-    WebApp.expand(); // Раскрыть на весь экран
+  const [isReady, setIsReady] = useState(false);
 
-    // 2. Достаем строку инициализации (в ней зашифрованы данные юзера)
+  useEffect(() => {
+    // Telegram SDK
+    WebApp.ready();
+    WebApp.expand();
+
     const initData = WebApp.initData;
 
-    // 3. Прикрепляем её к сокету
-    socket.auth = { initData }; 
-    
-    // 4. Подключаемся
+    if (!initData) {
+      console.warn('Telegram initData not ready yet');
+      return;
+    }
+
+    socket.auth = { initData };
     socket.connect();
+
+    setIsReady(true);
 
     return () => {
       socket.disconnect();
     };
   }, []);
 
+  // 🔴 КРИТИЧНО: пока Telegram не готов — ничего не рендерим
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading...
+      </div>
+    );
+  }
+
   return (
-    // ИЗМЕНЕНИЕ: Используем HashRouter
     <HashRouter>
       <div className="max-w-md mx-auto min-h-screen shadow-2xl overflow-hidden">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/game" element={<Game />} />
+          <Route path="*" element={<Home />} />
         </Routes>
       </div>
     </HashRouter>
