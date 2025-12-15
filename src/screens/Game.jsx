@@ -207,7 +207,7 @@ export const Game = () => {
 
   // --- RENDER HEADER ---
   const renderHeader = (color = "text-cyan-400", barColor = "bg-cyan-400") => (
-    <div className="bg-slate-900/90 z-20 sticky top-0 pb-2 shadow-lg shadow-cyan-900/10 backdrop-blur-md">
+    <div className="bg-slate-900/90 z-20 sticky top-0 shadow-lg shadow-cyan-900/10 backdrop-blur-md">
          <div className="flex justify-between items-center px-6 pt-4 mb-2">
             <div className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full border border-white/5">
                 <span className="text-[10px] text-slate-400 font-bold uppercase">Вопрос</span>
@@ -348,7 +348,7 @@ export const Game = () => {
   // --- VOTING PHASE ---
   if (phase === 'voting') {
     return (
-        <div className="flex flex-col h-screen bg-slate-900 relative">
+        <div className="flex flex-col h-screen relative">
             {renderHeader("text-purple-400", "bg-purple-500")}
             <div 
                 onClick={() => { playSound('click'); setSelectedAnswerId(null); }} 
@@ -416,49 +416,89 @@ export const Game = () => {
             </div>
 
             {/* MODAL VOTING */}
+            {/* --- НАЧАЛО БЛОКА МОДАЛКИ --- */}
             {selectedAnswerId && selectedAnswerObj && (
                 <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-6 pointer-events-none">
-                    <div className="w-full max-w-md pointer-events-auto animate-scale-in">
+                    {/* Обертка с анимацией появления */}
+                    <div className="w-full max-w-sm pointer-events-auto animate-enter">
                         
-                        <div className="glass bg-slate-800/95 rounded-2xl p-3 mb-4 flex items-center gap-3 shadow-[0_10px_40px_rgba(0,0,0,0.8)] border border-purple-500/50 overflow-x-auto hide-scrollbar">
-                            <button onClick={() => handleSelectVote(selectedAnswerId, 'ai')} className={`flex flex-col items-center min-w-[50px] gap-1 group transition-all ${guesses[selectedAnswerId]?.type === 'ai' ? 'opacity-100 scale-110' : 'opacity-60 hover:opacity-100'}`}>
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all shadow-[0_0_15px_purple] ${guesses[selectedAnswerId]?.type === 'ai' ? 'bg-purple-600 border-white' : 'bg-slate-700 border-purple-500 group-hover:bg-purple-600'}`}>
-                                    <Avatar isAi={true} size="full" />
+                        {/* 1. Ряд с выбором (AI или Игроки) */}
+                        <div className="glass-panel backdrop-blur-xl rounded-3xl p-4 mb-6 flex items-center justify-start gap-3 overflow-x-auto hide-scrollbar border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+                            
+                            {/* Кнопка выбора AI (Тостик) */}
+                            <button 
+                                onClick={() => handleSelectVote(selectedAnswerId, 'ai')} 
+                                className={`flex flex-col items-center min-w-[64px] gap-2 transition-all duration-300 group
+                                ${guesses[selectedAnswerId]?.type === 'ai' ? 'scale-110 opacity-100' : 'opacity-60 hover:opacity-100'}`}
+                            >
+                                <div className={`w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all 
+                                    ${guesses[selectedAnswerId]?.type === 'ai' 
+                                        ? 'bg-purple-600 border-white shadow-[0_0_25px_purple]' 
+                                        : 'bg-slate-800 border-slate-600 group-hover:border-purple-400'}`}
+                                >
+                                    <Avatar isAi={true} size="md" />
                                 </div>
-                                <span className="text-[9px] font-bold mt-1 text-purple-300">Тостик</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider ${guesses[selectedAnswerId]?.type === 'ai' ? 'text-purple-300' : 'text-slate-500'}`}>
+                                    Bot
+                                </span>
                             </button>
-                            <div className="w-[1px] h-8 bg-white/10 mx-1"></div>
+                            
+                            {/* Разделитель */}
+                            <div className="w-[1px] h-10 bg-white/10 mx-2"></div>
+                            
+                            {/* Кнопки выбора Игроков */}
                             {players.filter(p => p.id !== myId).map(p => {
+                                // Проверка: выбран ли этот игрок здесь или уже занят в другом ответе
                                 const isVotedHere = guesses[selectedAnswerId]?.playerId === p.id;
                                 const isUsedElsewhere = !isVotedHere && Object.values(guesses).some(g => g.playerId === p.id && g.type === 'human');
+                                
                                 return (
-                                    <button key={p.id} onClick={() => handleSelectVote(selectedAnswerId, 'human', p.id)} className={`flex flex-col items-center min-w-[50px] gap-1 group transition-all ${isVotedHere ? 'opacity-100 scale-110' : 'opacity-60 hover:opacity-100'} ${isUsedElsewhere ? 'grayscale opacity-30' : ''}`}>
-                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all ${isVotedHere ? 'ring-2 ring-green-400 ring-offset-2 ring-offset-slate-800' : 'group-hover:ring-2 group-hover:ring-cyan-400'}`}>
-                                            <Avatar
-                                                name={p.name}
-                                                avatarUrl={p.avatar}
-                                                size="full"
-                                                />
-
+                                    <button 
+                                        key={p.id} 
+                                        onClick={() => handleSelectVote(selectedAnswerId, 'human', p.id)} 
+                                        disabled={isUsedElsewhere}
+                                        className={`flex flex-col items-center min-w-[64px] gap-2 transition-all duration-300 group
+                                            ${isVotedHere ? 'scale-110 opacity-100' : 'opacity-60 hover:opacity-100'} 
+                                            ${isUsedElsewhere ? 'grayscale opacity-20 cursor-not-allowed' : ''}`
+                                        }
+                                    >
+                                        <div className={`w-14 h-14 rounded-full flex items-center justify-center overflow-hidden transition-all border-2
+                                            ${isVotedHere 
+                                                ? 'border-cyan-400 shadow-[0_0_25px_cyan]' 
+                                                : 'border-slate-700 group-hover:border-cyan-400'}`
+                                            }
+                                        >
+                                            <Avatar name={p.name} avatarUrl={p.avatar} size="full" />
                                         </div>
-                                        <span className={`text-[9px] font-bold truncate max-w-[60px] mt-1 ${isVotedHere ? 'text-green-400' : 'text-slate-400'}`}>{p.name}</span>
+                                        <span className={`text-[10px] font-bold truncate max-w-[64px] uppercase ${isVotedHere ? 'text-cyan-400' : 'text-slate-500'}`}>
+                                            {p.name}
+                                        </span>
                                     </button>
                                 );
                             })}
                         </div>
 
-                        <div className="glass bg-slate-800/95 border-purple-500/30 rounded-2xl p-6 mb-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-                            <p className="text-white text-lg font-medium text-center leading-relaxed">
+                        {/* 2. Текст ответа */}
+                        <div className="glass-panel p-6 rounded-3xl text-center mb-8 border border-white/10 relative overflow-hidden shadow-2xl">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
+                            <p className="text-xl text-white font-medium leading-relaxed drop-shadow-md">
                                 "{selectedAnswerObj.text}"
                             </p>
                         </div>
 
-                        <div className="mt-6 flex justify-center">
-                            <button onClick={() => { playSound('click'); setSelectedAnswerId(null); }} className="flex items-center gap-2 px-6 py-3 rounded-full bg-slate-800 text-slate-300 border border-slate-600 hover:bg-slate-700 hover:text-white transition-all shadow-lg"><X size={18} /><span className="text-sm font-bold">ЗАКРЫТЬ</span></button>
+                        {/* 3. Кнопка Закрыть (X) */}
+                        <div className="flex justify-center">
+                            <button 
+                                onClick={() => { playSound('click'); setSelectedAnswerId(null); }} 
+                                className="w-14 h-14 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center border border-white/10 transition-all active:scale-90 backdrop-blur-md shadow-lg group"
+                            >
+                                <X size={24} className="text-slate-400 group-hover:text-white transition-colors" />
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
+            {/* --- КОНЕЦ БЛОКА МОДАЛКИ --- */}
             
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/90 to-transparent z-50 transition-all duration-300">
                  {hasVoted ? (
@@ -466,11 +506,6 @@ export const Game = () => {
                         <Button variant="secondary" disabled className="opacity-70 bg-slate-800/80 border-slate-600">
                              ОЖИДАНИЕ ИГРОКОВ...
                         </Button>
-                        {initialIsHost && (
-                            <button onClick={() => socket.emit('dev_skip_timer', { roomId })} className="text-[10px] text-slate-500 font-mono text-center hover:text-white">
-                                (Host) Force Finish
-                            </button>
-                        )}
                      </div>
                  ) : (
                      <Button className="shadow-2xl shadow-cyan-500/20" onClick={confirmVotes}>ПОДТВЕРДИТЬ ВЫБОР</Button>
@@ -483,7 +518,7 @@ export const Game = () => {
   // --- REVEAL PHASE ---
   if (phase === 'reveal') {
       return (
-        <div className="flex flex-col h-screen bg-slate-900 relative">
+        <div className="flex flex-col h-screen relative">
              <div className="bg-slate-900/95 backdrop-blur z-20 sticky top-0 shadow-lg border-b border-white/10">
                 <div className="p-4 text-center">
                     <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-400">РЕЗУЛЬТАТЫ</h2>
@@ -620,7 +655,7 @@ export const Game = () => {
                 })}
             </div>
             
-            <div className="p-4 bg-slate-900 z-30 border-t border-white/10">
+            <div className="p-4  z-30">
                 {initialIsHost ? (
                     <Button onClick={handleNextRoundRequest} variant="primary">{currentRound < totalRounds ? 'СЛЕДУЮЩИЙ РАУНД' : 'ЗАВЕРШИТЬ ИГРУ'}</Button>
                 ) : (
@@ -633,7 +668,7 @@ export const Game = () => {
 
   // --- WRITING PHASE ---
   return (
-      <div className="flex flex-col h-screen bg-slate-900 relative">
+      <div className="flex flex-col h-screen relative">
         {renderHeader("text-cyan-400", "bg-cyan-400")}
 
         <div className="p-6 flex-1 flex flex-col">

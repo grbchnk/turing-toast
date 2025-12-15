@@ -13,7 +13,7 @@ export const Button = ({ children, onClick, variant = 'primary', disabled = fals
     <button 
       onClick={onClick} 
       disabled={disabled}
-      className={`w-full py-4 px-6 rounded-2xl font-bold tracking-wide transition-all active:scale-95 disabled:opacity-50 disabled:grayscale ${variants[variant]} ${className}`}
+      className={`w-full py-4 px-6 rounded-full font-bold tracking-wide transition-all active:scale-95 disabled:opacity-50 disabled:grayscale ${variants[variant]} ${className}`}
     >
       {children}
     </button>

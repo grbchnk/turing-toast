@@ -359,7 +359,7 @@ const saveName = () => {
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value)}
                 placeholder="X7Y99" 
-                className="bg-slate-800/80 border border-slate-600 p-4 rounded-xl text-white text-center text-2xl mb-6 uppercase tracking-widest focus:border-cyan-400 focus:outline-none" 
+                className="bg-slate-800/80 border border-slate-600 p-4 text-white text-center text-2xl mb-6 uppercase tracking-widest focus:border-cyan-400 focus:outline-none" 
               />
               <Button onClick={handleJoinRoom}>Войти</Button>
               <Button variant="secondary" className="mt-4" onClick={() => { playSound('click'); setView('menu'); }}>Назад</Button>
@@ -508,12 +508,15 @@ const saveName = () => {
         {!isHost && <div className="text-center text-slate-500 animate-pulse text-xs font-mono py-2 mb-2">ХОСТ НАСТРАИВАЕТ ИГРУ...</div>}
         
         {isHost ? (
-            players.length < 1 ? (
-                <Button variant="secondary" disabled className="opacity-50 cursor-not-allowed">
-                    <div className="flex items-center justify-center gap-2">
-                        <AlertTriangle size={16} />
-                        <span>МИНИМУМ 2 ИГРОКА</span>
-                    </div>
+            players.length < 2 ? (
+                // <Button variant="secondary" disabled className="opacity-50 cursor-not-allowed">
+                //     <div className="flex items-center justify-center gap-2">
+                //         <AlertTriangle size={16} />
+                //         <span>МИНИМУМ 2 ИГРОКА</span>
+                //     </div>
+                // </Button>
+                <Button onClick={handleStartGame} variant="primary" className="shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+                    НАЧАТЬ ИГРУ
                 </Button>
             ) : (
                 <Button onClick={handleStartGame} variant="primary" className="shadow-[0_0_25px_rgba(6,182,212,0.4)]">
@@ -521,7 +524,7 @@ const saveName = () => {
                 </Button>
             )
         ) : (
-            <Button variant="secondary" disabled>ОЖИДАНИЕ НАЧАЛА ИГРЫ</Button>
+            <Button variant="secondary" disabled>ОЖИДАНИЕ ХОСТА</Button>
         )}
       </div>
     </div>
