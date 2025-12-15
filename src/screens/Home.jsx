@@ -38,25 +38,39 @@ export const Home = () => {
   const [availableTopics, setAvailableTopics] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]); 
 
-  const [myProfile, setMyProfile] = useState(() => {
-    // Пробуем достать данные из Telegram
-    const tgUser = WebApp.initDataUnsafe?.user;
+  // Инициализируем пустым/гостевым профилем — сервер пришлёт актуальный profile событием
+const [myProfile, setMyProfile] = useState(() => {
+  // 1. Пробуем localStorage
+  const saved = localStorage.getItem('toast_profile');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
 
-    if (tgUser) {
-        return {
-            name: tgUser.first_name || tgUser.username,
-            id: tgUser.id.toString(),
-            avatar: tgUser.photo_url
-        };
-    }
-
-    // Если мы в браузере (тест), оставляем старую логику
-    const randomNames = ['Neo', 'Trinity', 'Morpheus', 'Cipher'];
-    return {
-      name: randomNames[Math.floor(Math.random() * randomNames.length)],
-      id: 'guest_' + Math.random().toString(36).substr(2, 9) 
+  // 2. Telegram
+  const tgUser = WebApp.initDataUnsafe?.user;
+  if (tgUser) {
+    const profile = {
+      id: String(tgUser.id),
+      name: tgUser.first_name || tgUser.username || 'Player',
+      avatar: tgUser.photo_url || null
     };
-  });
+    localStorage.setItem('toast_profile', JSON.stringify(profile));
+    return profile;
+  }
+
+  // 3. Fallback (только для dev)
+  const profile = {
+    id: 'guest_' + Math.random().toString(36).substr(2, 9),
+    name: 'Guest',
+    avatar: null
+  };
+  localStorage.setItem('toast_profile', JSON.stringify(profile));
+  return profile;
+});
+
+
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
@@ -76,6 +90,22 @@ export const Home = () => {
         setView('lobby');
         playSound('whoosh'); // [NEW] Звук перехода
     });
+
+    socket.on('profile', (serverProfile) => {
+        if (!serverProfile) return;
+
+        setMyProfile(prev => {
+            const updated = {
+            id: String(serverProfile.id),
+            name: serverProfile.name,
+            avatar: serverProfile.avatar || null
+            };
+
+            localStorage.setItem('toast_profile', JSON.stringify(updated));
+            return updated;
+        });
+        });
+
 
     socket.on('joined_room', (room) => {
         setRoomId(room.id);
@@ -110,6 +140,7 @@ export const Home = () => {
         socket.off('update_players');
         socket.off('error');
         socket.off('game_started');
+        socket.off('profile');
     };
   }, [roomId, myProfile, isHost, navigate, selectedTopics, players.length, view]);
 
@@ -165,10 +196,13 @@ const saveName = () => {
   if (!newName) return;
 
   playSound('click');
-  setMyProfile(prev => ({ ...prev, name: newName }));
+  setMyProfile(prev => {
+    const updated = { ...prev, name: newName };
+    localStorage.setItem('toast_profile', JSON.stringify(updated));
+    return updated;
+    });
 
-  // Отправка на сервер
-  socket.emit('update_profile', { name: newName });
+    socket.emit('update_profile', { name: newName });
 
   setIsEditingName(false);
 };
