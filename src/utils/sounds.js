@@ -1,12 +1,18 @@
+// frontend/src/utils/sounds.js
 import { Howl } from 'howler';
 
+// Получаем базовый путь (на localhost это '/', на GitHub Pages это '/имя-репо/')
+const BASE_URL = import.meta.env.BASE_URL;
+
 const soundFiles = {
-    click: '/sounds/click.mp3',
-    pop: '/sounds/pop.mp3',
-    whoosh: '/sounds/whoosh.mp3',
-    start: '/sounds/start.mp3',
-    ding: '/sounds/ding.mp3',
-    buzz: '/sounds/buzz.mp3',
+    // Склеиваем базу и путь к файлу. 
+    // Обрати внимание: мы убрали слеш в начале имен файлов, так как BASE_URL уже содержит его в конце.
+    click: `${BASE_URL}sounds/click.mp3`,
+    pop: `${BASE_URL}sounds/pop.mp3`,
+    whoosh: `${BASE_URL}sounds/whoosh.mp3`,
+    start: `${BASE_URL}sounds/start.mp3`,
+    ding: `${BASE_URL}sounds/ding.mp3`,
+    buzz: `${BASE_URL}sounds/buzz.mp3`,
 };
 
 const sounds = {};
@@ -16,6 +22,7 @@ Object.keys(soundFiles).forEach(key => {
     sounds[key] = new Howl({
         src: [soundFiles[key]],
         volume: 0.5, // Громкость по умолчанию (50%)
+        preload: true, // Предзагрузка, чтобы не было задержек
     });
 });
 
