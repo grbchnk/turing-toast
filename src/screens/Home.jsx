@@ -278,12 +278,23 @@ const handleSliderChange = (setter) => (e) => {
       WebApp.openTelegramLink(shareUrl);
   };
 
-  const toggleTopic = (id) => {
-      if (!isHost) return;
-      playSound('click');
-      setSelectedTopics(prev => 
-          prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
-      );
+  const toggleTopic = (topicId) => {
+      setSelectedTopics(prev => {
+          // 1. Если тема уже выбрана (мы хотим её убрать)
+          if (prev.includes(topicId)) {
+              // [FIX] Проверяем: если это последняя оставшаяся тема — НЕ УБИРАЕМ её
+              if (prev.length === 1) {
+                  // (Опционально) Можно добавить звук ошибки или вибрацию
+                  playSound('buzz'); 
+                  return prev; 
+              }
+              // Если тем больше одной, спокойно убираем
+              return prev.filter(t => t !== topicId);
+          }
+          
+          // 2. Если тема не выбрана — добавляем
+          return [...prev, topicId];
+      });
   };
 
   const saveName = () => {
