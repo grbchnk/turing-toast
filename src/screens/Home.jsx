@@ -91,17 +91,18 @@ const [myProfile, setMyProfile] = useState(() => {
     socket.on('profile', (serverProfile) => {
         if (!serverProfile) return;
 
-        setMyProfile(prev => {
-            const updated = {
+        const updated = {
             id: String(serverProfile.id),
             name: serverProfile.name,
             avatar: serverProfile.avatar || null
-            };
+        };
 
-            localStorage.setItem('toast_profile', JSON.stringify(updated));
-            return updated;
-        });
-        });
+        // Сразу обновляем localStorage
+        localStorage.setItem('toast_profile', JSON.stringify(updated));
+        
+        // Затем обновляем состояние
+        setMyProfile(updated);
+    });
 
 
     socket.on('joined_room', (room) => {
