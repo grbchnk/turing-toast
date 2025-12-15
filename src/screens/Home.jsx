@@ -40,7 +40,7 @@ export const Home = () => {
 
   // Инициализируем пустым/гостевым профилем — сервер пришлёт актуальный profile событием
 const [myProfile, setMyProfile] = useState(() => {
-  // 1. Пробуем localStorage
+  // 1. ВСЕГДА сначала localStorage
   const saved = localStorage.getItem('toast_profile');
   if (saved) {
     try {
@@ -48,27 +48,24 @@ const [myProfile, setMyProfile] = useState(() => {
     } catch {}
   }
 
-  // 2. Telegram
+  // 2. Telegram — ТОЛЬКО для первичного рендера
   const tgUser = WebApp.initDataUnsafe?.user;
   if (tgUser) {
-    const profile = {
+    return {
       id: String(tgUser.id),
       name: tgUser.first_name || tgUser.username || 'Player',
       avatar: tgUser.photo_url || null
     };
-    localStorage.setItem('toast_profile', JSON.stringify(profile));
-    return profile;
   }
 
-  // 3. Fallback (только для dev)
-  const profile = {
-    id: 'guest_' + Math.random().toString(36).substr(2, 9),
+  // 3. fallback
+  return {
+    id: 'guest',
     name: 'Guest',
     avatar: null
   };
-  localStorage.setItem('toast_profile', JSON.stringify(profile));
-  return profile;
 });
+
 
 
 
