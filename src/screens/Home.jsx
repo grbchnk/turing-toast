@@ -508,7 +508,7 @@ const saveName = () => {
         {!isHost && <div className="text-center text-slate-500 animate-pulse text-xs font-mono py-2 mb-2">ХОСТ НАСТРАИВАЕТ ИГРУ...</div>}
         
         {isHost ? (
-            players.length < 2 ? (
+            players.length > 0 ? (
                 <Button variant="secondary" disabled className="opacity-50 cursor-not-allowed">
                     <div className="flex items-center justify-center gap-2">
                         <AlertTriangle size={16} />

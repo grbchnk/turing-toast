@@ -12,7 +12,7 @@ export const Avatar = ({ name, size = 'md', isAi = false, avatarUrl }) => {
   if (isAi) {
     return (
       <div className={`${sizes[size]} rounded-full overflow-hidden bg-slate-900 border border-purple-500/50`}>
-        <img src="/toast-avatar.png" className="w-full h-full object-cover" />
+        <img src="./toast-avatar.png" className="w-full h-full object-cover" />
       </div>
     );
   }
