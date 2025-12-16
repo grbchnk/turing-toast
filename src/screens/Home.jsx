@@ -7,7 +7,7 @@ import { Toast } from '../components/Toast';
 import { playSound, toggleMute, getMuteState } from '../utils/sounds';
 import { 
     Users, Copy, Settings, ListFilter, AlertTriangle, 
-    Volume2, VolumeX, BookOpen, Edit2, Check, X, Info, Share2 
+    Volume2, VolumeX, BookOpen, Edit2, Check, X, Info, Share2, KeyRound, ArrowLeft, Gamepad2
 } from 'lucide-react';
 import WebApp from '@twa-dev/sdk';
 
@@ -439,29 +439,65 @@ const handleSliderChange = (setter) => (e) => {
     );
   }
   
-  if (view === 'join_code_input') {
+if (view === 'join_code_input') {
       return (
           <div className="flex flex-col h-screen p-6 justify-center relative">
               <Toast message={toastMsg} onClose={() => setToastMsg(null)} />
-              <h2 className="text-2xl font-bold text-center mb-6">Введи код</h2>
-              <input 
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value)}
-                placeholder="X7Y99" 
-                className="bg-slate-800/80 border border-slate-600 p-4 text-white text-center text-2xl mb-6 uppercase tracking-widest focus:border-cyan-400 focus:outline-none" 
-              />
-              <Button onClick={handleJoinRoom}>Войти</Button>
-              <Button 
-                    variant="secondary" 
-                    className="mt-4" 
-                    onClick={() => { 
-                        playSound('click'); 
-                        setToastMsg(null); // <--- Очищаем тост
-                        setView('menu'); 
-                    }}
-                >
-                    Назад
-                </Button>
+
+              <div className="flex-1 flex flex-col justify-center px-6 relative z-10 max-w-md mx-auto w-full">
+                  
+                  {/* Заголовок и Иконка */}
+                  <div className="text-center mb-10 animate-fade-in-up">
+                      <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-slate-800/50 border border-slate-700 mb-6 shadow-xl shadow-cyan-900/10 backdrop-blur-sm">
+                          <KeyRound size={40} className="text-cyan-400" />
+                      </div>
+                      <h2 className="text-3xl font-black text-white uppercase tracking-wider mb-2">
+                          Вход в игру
+                      </h2>
+                      <p className="text-slate-400 text-sm">
+                          Введите код комнаты от хоста
+                      </p>
+                  </div>
+
+                  {/* Поле ввода */}
+                  <div className="relative mb-8 group animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                      <input 
+                          value={joinCode}
+                          onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                          placeholder="CODE" 
+                          maxLength={5}
+                          className="
+                              relative w-full bg-slate-900/90 border-2 border-slate-700 
+                              text-white text-center text-3xl font-black font-mono tracking-[0.4em] 
+                              py-4 rounded-xl shadow-2xl uppercase placeholder:text-slate-700
+                              focus:border-cyan-500 focus:outline-none focus:shadow-[0_0_30px_rgba(6,182,212,0.3)]
+                              transition-all duration-300 transform focus:scale-[1.02]
+                          " 
+                      />
+                  </div>
+
+                  {/* Кнопки */}
+                  <div className="space-y-3 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                      <Button 
+                          onClick={handleJoinRoom} 
+                          className="w-full py-4 text-lg shadow-lg shadow-cyan-500/20"
+                          disabled={!joinCode}
+                      >
+                          ВОЙТИ
+                      </Button>
+                      
+                      <button 
+                          onClick={() => { 
+                              playSound('click'); 
+                              setToastMsg(null);
+                              setView('menu'); 
+                          }}
+                          className="w-full py-4 flex items-center justify-center gap-2 text-slate-400 hover:text-white transition-colors font-bold text-sm uppercase tracking-widest h-12"
+                      >
+                          <ArrowLeft size={16} /> Назад в меню
+                      </button>
+                  </div>
+              </div>
           </div>
       )
   }

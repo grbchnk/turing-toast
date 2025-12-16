@@ -16,6 +16,9 @@ const soundFiles = {
     slider: `${BASE_URL}sounds/slider.mp3`, // Тот, что мы чинили шагом ранее
     join: `${BASE_URL}sounds/join.mp3`,     // Для входа игрока
     leave: `${BASE_URL}sounds/leave.mp3`,    // Для выхода игрока
+    ping: `${BASE_URL}sounds/ping.mp3`, // Тот, что мы чинили шагом ранее
+    correct: `${BASE_URL}sounds/correct.mp3`,     // Для входа игрока
+    miss: `${BASE_URL}sounds/miss.mp3`,    // Для выхода игрока
 };
 
 const sounds = {};

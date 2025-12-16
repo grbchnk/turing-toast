@@ -13,7 +13,7 @@ export const LiveLeaderboard = ({ players, submittedIds = [], roundDeltas = {} }
   };
 
   return (
-    <div className="w-full bg-slate-900/80 backdrop-blur-md border-b border-white/5 py-2 overflow-x-auto hide-scrollbar z-20 transition-all">
+    <div className="w-full bg-transparent py-2 overflow-x-auto hide-scrollbar z-20 transition-all">
       <div className="flex px-4 gap-4 min-w-max mx-auto justify-center items-end">
         {sortedPlayers.map((p, index) => {
             const isDone = submittedIds.includes(p.id);
