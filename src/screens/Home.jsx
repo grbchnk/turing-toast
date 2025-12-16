@@ -7,7 +7,8 @@ import { Toast } from '../components/Toast';
 import { playSound, toggleMute, getMuteState } from '../utils/sounds';
 import { 
     Users, Copy, Settings, ListFilter, AlertTriangle, 
-    Volume2, VolumeX, BookOpen, Edit2, Check, X, Info, Share2, KeyRound, ArrowLeft, Gamepad2
+    Volume2, VolumeX, BookOpen, Edit2, Check, X, Info, Share2, KeyRound, ArrowLeft, Gamepad2,
+    PlusSquare, Keyboard 
 } from 'lucide-react';
 import WebApp from '@twa-dev/sdk';
 
@@ -45,6 +46,7 @@ export const Home = () => {
   const [timeLimit, setTimeLimit] = useState(60);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]); 
+  const [roomsList, setRoomsList] = useState([]);
 
   const [myProfile, setMyProfile] = useState(() => {
     const saved = localStorage.getItem('toast_profile');
@@ -116,6 +118,10 @@ export const Home = () => {
         if (selectedTopics.length === 0) {
             setSelectedTopics(list.slice(0, 3).map(t => t.id));
         }
+    });
+
+    socket.on('rooms_list_update', (list) => {
+        setRoomsList(list);
     });
 
     socket.on('room_created', (room) => {
@@ -190,6 +196,7 @@ export const Home = () => {
         socket.off('error');
         socket.off('game_started');
         socket.off('profile');
+        socket.off('rooms_list_update');
     };
   }, [roomId, myProfile, isHost, navigate, selectedTopics, players.length, view]);
 
@@ -256,6 +263,25 @@ export const Home = () => {
           roomId, 
           settings: { rounds, timeLimit, topics: selectedTopics } 
       });
+  };
+
+  // [НОВОЕ] Открыть список комнат
+  const handleOpenRoomsList = () => {
+      playSound('click');
+      socket.emit('get_rooms_list'); // Запрашиваем список у сервера
+      setView('rooms_list');
+  };
+
+  // [НОВОЕ] Обновить список вручную
+  const handleRefreshRooms = () => {
+      playSound('click');
+      socket.emit('get_rooms_list');
+  };
+  
+  // [НОВОЕ] Быстрый вход из списка
+  const handleQuickJoin = (rId) => {
+      playSound('click');
+      socket.emit('join_room', { roomId: rId });
   };
 
 const handleSliderChange = (setter) => (e) => {
@@ -383,12 +409,14 @@ const handleSliderChange = (setter) => (e) => {
   );
 
   // --- RENDER ---
+// --- RENDER MENU ---
   if (view === 'menu') {
     return (
       <div className="flex flex-col h-screen p-6 justify-center items-center relative overflow-hidden">
         {showRules && <RulesModal />}
         <Toast message={toastMsg} onClose={() => setToastMsg(null)} />
 
+        {/* HEADER (Профиль и звук) - без изменений */}
         <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
             <div className="flex items-center gap-3 animate-fade-in-down">
                 <div className="relative group cursor-pointer" onClick={startEditing}>
@@ -425,15 +453,47 @@ const handleSliderChange = (setter) => (e) => {
             </div>
         </div>
 
-        <div className="text-center z-10 mb-12 flex flex-col items-center animate-fade-in-up">
-          <img src="./toast.png" alt="Toast" className="w-40 h-40 object-contain mb-4 animate-float drop-shadow-[0_0_25px_rgba(192,132,252,0.4)]" />
-          <h1 className="text-6xl font-black italic tracking-tighter text-neon-outline uppercase leading-[0.9]">ТОСТ<br/>ТЬЮРИНГА</h1>
-          <p className="text-cyan-200/70 mt-4 text-sm uppercase tracking-[0.3em]">Neural Party Game</p>
+        {/* LOGO & TITLE (Обновленный красивый текст) */}
+        <div className="text-center z-10 mb-10 flex flex-col items-center animate-fade-in-up">
+          {/* Добавил свечение за картинкой */}
+          <div className="relative">
+              <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-full"></div>
+              <img src="./toast.png" alt="Toast" className="relative w-40 h-40 object-contain mb-4 animate-float drop-shadow-[0_0_25px_rgba(192,132,252,0.4)]" />
+          </div>
+          
+          {/* Новый градиентный текст */}
+          <h1 className="text-6xl font-black italic tracking-tighter text-cyber-gradient uppercase leading-[0.9] transform -skew-x-6">
+              ТОСТ<br/>ТЬЮРИНГА
+          </h1>
+          <p className="text-cyan-200/70 mt-4 text-xs font-bold uppercase tracking-[0.4em] border-t border-cyan-500/30 pt-3 px-4">
+             Какой-то кусок хлеба...
+          </p>
         </div>
 
-        <div className="w-full space-y-4 z-10 max-w-xs animate-fade-in-up delay-100">
-          <Button variant="neon" onClick={handleCreateRoom}>СОЗДАТЬ КОМНАТУ</Button>
-          <Button variant="secondary" onClick={() => { playSound('click'); setView('join_code_input'); }}>ПРИСОЕДИНИТЬСЯ</Button>
+        {/* BUTTONS (С иконками) */}
+        <div className="w-full space-y-3 z-10 max-w-xs animate-fade-in-up delay-100">
+          
+          <Button variant="neon" onClick={handleCreateRoom} className="py-4">
+              <div className="btn-content">
+                  <PlusSquare size={20} className="stroke-[2.5]" />
+                  <span>СОЗДАТЬ КОМНАТУ</span>
+              </div>
+          </Button>
+          
+          <Button variant="secondary" onClick={handleOpenRoomsList} className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 py-3.5">
+              <div className="btn-content">
+                  <ListFilter size={20} className="stroke-[2.5]" /> 
+                  <span>СПИСОК КОМНАТ</span>
+              </div>
+          </Button>
+
+          <Button variant="secondary" onClick={() => { playSound('click'); setView('join_code_input'); }} className="py-3.5">
+              <div className="btn-content">
+                  <Keyboard size={20} className="stroke-[2.5]" />
+                  <span>ВВЕСТИ КОД</span>
+              </div>
+          </Button>
+
         </div>
       </div>
     );
@@ -446,8 +506,8 @@ if (view === 'join_code_input') {
 
               <div className="flex-1 flex flex-col justify-center px-6 relative z-10 max-w-md mx-auto w-full">
                   
-                  {/* Заголовок и Иконка */}
-                  <div className="text-center mb-10 animate-fade-in-up">
+                  {/* Заголовок и Иконка (без задержки, fillMode не обязателен, но полезен) */}
+                  <div className="text-center mb-10 animate-fade-in-up" style={{ animationFillMode: 'both' }}>
                       <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-slate-800/50 border border-slate-700 mb-6 shadow-xl shadow-cyan-900/10 backdrop-blur-sm">
                           <KeyRound size={40} className="text-cyan-400" />
                       </div>
@@ -459,8 +519,11 @@ if (view === 'join_code_input') {
                       </p>
                   </div>
 
-                  {/* Поле ввода */}
-                  <div className="relative mb-8 group animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                  {/* Поле ввода - добавил animationFillMode */}
+                  <div 
+                      className="relative mb-8 group animate-fade-in-up" 
+                      style={{ animationDelay: '100ms', animationFillMode: 'both' }}
+                  >
                       <input 
                           value={joinCode}
                           onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
@@ -476,8 +539,11 @@ if (view === 'join_code_input') {
                       />
                   </div>
 
-                  {/* Кнопки */}
-                  <div className="space-y-3 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                  {/* Кнопки - добавил animationFillMode */}
+                  <div 
+                      className="space-y-3 animate-fade-in-up" 
+                      style={{ animationDelay: '200ms', animationFillMode: 'both' }}
+                  >
                       <Button 
                           onClick={handleJoinRoom} 
                           className="w-full py-4 text-lg shadow-lg shadow-cyan-500/20"
@@ -500,6 +566,82 @@ if (view === 'join_code_input') {
               </div>
           </div>
       )
+  }
+
+  // --- ROOMS LIST VIEW [НОВОЕ] ---
+  if (view === 'rooms_list') {
+      return (
+          <div className="flex flex-col h-screen p-6 relative bg-slate-900">
+             <Toast message={toastMsg} onClose={() => setToastMsg(null)} />
+             
+             {/* Заголовок */}
+             <div className="flex items-center justify-between mb-6 z-10 animate-fade-in-down">
+                 <button onClick={() => { playSound('click'); setView('menu'); }} className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+                     <ArrowLeft size={24} />
+                 </button>
+                 <h2 className="text-xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 tracking-wider">
+                     Активные игры
+                 </h2>
+                 <button onClick={handleRefreshRooms} className="p-2 rounded-full hover:bg-white/10 text-cyan-400 transition-colors">
+                     <Share2 size={20} className="rotate-90" /> {/* Используем как иконку обновления */}
+                 </button>
+             </div>
+
+             {/* Список */}
+             <div className="flex-1 overflow-y-auto space-y-3 pb-6 z-10">
+                 {roomsList.length === 0 ? (
+                     <div className="flex flex-col items-center justify-center h-64 text-slate-500 animate-pulse space-y-4">
+                         <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5">
+                            <Gamepad2 size={32} />
+                         </div>
+                         <p className="text-sm font-bold">Нет активных комнат</p>
+                         <p className="text-xs">Создай свою и позови друзей!</p>
+                     </div>
+                 ) : (
+                     roomsList.map((room, i) => (
+                         <div key={room.id} className="group relative bg-slate-800/40 border border-white/10 hover:border-cyan-500/50 rounded-xl p-4 transition-all active:scale-[0.98] animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                             <div className="flex justify-between items-start mb-2">
+                                 <div>
+                                     <div className="flex items-center gap-2 mb-1">
+                                         <span className="text-lg font-black font-mono text-white tracking-wider">{room.id}</span>
+                                         {room.state === 'lobby' && <span className="bg-green-500/20 text-green-400 text-[9px] px-1.5 py-0.5 rounded uppercase font-bold border border-green-500/30">Lobby</span>}
+                                         {room.state !== 'lobby' && <span className="bg-purple-500/20 text-purple-400 text-[9px] px-1.5 py-0.5 rounded uppercase font-bold border border-purple-500/30">Игра идет</span>}
+                                     </div>
+                                     <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold">
+                                        <Users size={12} /> {room.playersCount} игроков
+                                        <span className="text-slate-600">•</span>
+                                        <span>Хост: {room.hostName}</span>
+                                     </div>
+                                 </div>
+                                 
+                                 {room.isJoinable ? (
+                                    <button onClick={() => handleQuickJoin(room.id)} className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs py-2 px-4 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all uppercase tracking-wide">
+                                        Войти
+                                    </button>
+                                 ) : (
+                                     <div className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700/50 text-slate-500">
+                                         <KeyRound size={14} />
+                                     </div>
+                                 )}
+                             </div>
+                             
+                             {/* Статус игры (Вопрос или Тема) */}
+                             <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
+                                 {room.state === 'lobby' ? (
+                                     <span className="text-xs text-slate-500 italic">Ожидание начала...</span>
+                                 ) : (
+                                     <>
+                                        <span className="text-base animate-pulse">{room.statusText.split(' ')[0]}</span> {/* Эмодзи */}
+                                        <span className="text-xs text-cyan-100/70 truncate font-medium">{room.statusText}</span>
+                                     </>
+                                 )}
+                             </div>
+                         </div>
+                     ))
+                 )}
+             </div>
+          </div>
+      );
   }
 
   // --- LOBBY VIEW ---

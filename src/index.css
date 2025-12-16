@@ -156,3 +156,28 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
 }
+
+/* 1. Мощный градиентный заголовок */
+.text-cyber-gradient {
+  background: linear-gradient(135deg, #e879f9 0%, #22d3ee 50%, #e879f9 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 4s linear infinite;
+  filter: drop-shadow(0 0 15px rgba(192, 132, 252, 0.4));
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* 2. Эффект для кнопок (чтобы иконки и текст стояли ровно) */
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* Расстояние между иконкой и текстом */
+  width: 100%;
+}
