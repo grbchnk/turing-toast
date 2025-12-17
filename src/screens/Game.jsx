@@ -111,6 +111,10 @@ export const Game = () => {
         }
     });
 
+    socket.on('restore_my_answer', (text) => {
+        setMyAnswer(text);
+    });
+
     socket.on('reconnect_success', (data) => {
         if (data.isHost !== undefined) setIsHost(data.isHost);
     });
@@ -191,6 +195,7 @@ export const Game = () => {
         socket.off('start_voting');
         socket.off('round_results');
         socket.off('game_over_stats');
+        socket.off('restore_my_answer');
     };
   }, [navigate, roomId, myProfile]);
 

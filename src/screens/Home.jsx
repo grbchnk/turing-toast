@@ -185,6 +185,17 @@ export const Home = () => {
         navigate('/game', { state: { roomId, myProfile, isHost } });
     });
 
+    socket.on('host_transferred', ({ newHostId }) => {
+        // Если ID нового хоста совпадает с моим ID
+        if (newHostId === myProfile.id) {
+            setIsHost(true);
+            setToastMsg("Вы стали хостом комнаты!");
+            playSound('join'); // Или любой другой звук уведомления
+        } else {
+            setIsHost(false);
+        }
+    });
+
     // Clean up
     return () => {
         socket.off('reconnect_success');
@@ -197,6 +208,7 @@ export const Home = () => {
         socket.off('game_started');
         socket.off('profile');
         socket.off('rooms_list_update');
+        socket.off('host_transferred');
     };
   }, [roomId, myProfile, isHost, navigate, selectedTopics, players.length, view]);
 
@@ -614,10 +626,15 @@ if (view === 'join_code_input') {
                                      </div>
                                  </div>
                                  
-                                 {room.isJoinable ? (
-                                    <button onClick={() => handleQuickJoin(room.id)} className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs py-2 px-4 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all uppercase tracking-wide">
-                                        Войти
-                                    </button>
+                                 {room.isMyRoom ? (
+                                     // [FIX] Кнопка для возврата в свою игру
+                                     <button onClick={() => handleQuickJoin(room.id)} className="bg-green-500 hover:bg-green-400 text-black font-bold text-xs py-2 px-4 rounded-lg shadow-[0_0_15px_rgba(34,197,94,0.3)] transition-all uppercase tracking-wide flex items-center gap-2">
+                                         <ArrowLeft size={14} /> Вернуться
+                                     </button>
+                                 ) : room.isJoinable ? (
+                                     <button onClick={() => handleQuickJoin(room.id)} className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs py-2 px-4 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all uppercase tracking-wide">
+                                         Войти
+                                     </button>
                                  ) : (
                                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-700/50 text-slate-500">
                                          <KeyRound size={14} />
