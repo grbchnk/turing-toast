@@ -168,12 +168,25 @@ export const Game = () => {
         setRevealedCount(-1);
     });
 
-    socket.on('round_results', (data) => {
-        setShuffledAnswers(prev => prev.map(item => ({ ...item, ...data.fullAnswers.find(fa => fa.id === item.id) })));
+socket.on('round_results', (data) => {
+        setShuffledAnswers(prev => {
+            if (prev.length === 0) {
+                return data.fullAnswers;
+            }
+            return prev.map(item => ({ 
+                ...item, 
+                ...data.fullAnswers.find(fa => fa.id === item.id) 
+            }));
+        });
+        
         setRoundResults(data);
         setPlayers(data.players);
         
         setPhase('reveal');
+        
+        // Опционально: если это реконнект, можно сразу открыть все карты, 
+        // или оставить -1, чтобы проигралась анимация открытия заново.
+        // Оставим -1 для красоты.
         setRevealedCount(-1); 
     });
     
