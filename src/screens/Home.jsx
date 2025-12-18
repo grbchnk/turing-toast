@@ -65,27 +65,41 @@ export const Home = () => {
   
   const prevPlayersRef = useRef([]);
 
-  const lastSoundTime = useRef(0);
-
   // ==========================================
   // 1. ИНИЦИАЛИЗАЦИЯ (Запускается 1 раз)
   // ==========================================
   useEffect(() => {
       WebApp.expand();
       
-      // Спрашиваем сервер: "Я где-то играю?"
-      socket.emit('check_reconnect');
+      const startParam = WebApp.initDataUnsafe?.start_param;
 
-      // Сразу просим темы (чтобы были готовы к меню)
+      // [FIX] Логика приоритетов:
+      // Если есть startParam (ссылка приглашения) -> Игнорируем старую сессию, сразу пытаемся войти в новую.
+      // Если ссылки нет -> Проверяем, не вылетели ли мы случайно (реконнект).
+
+      if (startParam) {
+          console.log("Invite link detected, skipping reconnect check");
+          setJoinCode(startParam);
+          // Сразу пробуем войти в комнату по ссылке
+          // Таймаут нужен, чтобы сокет успел проинициализироваться с auth данными
+          setTimeout(() => {
+              socket.emit('join_room', { roomId: startParam.toUpperCase() });
+          }, 500);
+          
+          // Отключаем спиннер проверки сессии
+          setIsCheckingSession(false); 
+      } else {
+          // Нет ссылки - проверяем, может мы в игре?
+          socket.emit('check_reconnect');
+
+          // Таймер безопасности на случай лага сервера
+          const timer = setTimeout(() => {
+              setIsCheckingSession(false);
+          }, 2000);
+          return () => clearTimeout(timer);
+      }
+
       socket.emit('get_topics');
-      
-      // Таймер безопасности: если сервер упал или молчит > 2 сек, 
-      // считаем, что сессии нет, и разрешаем вход по коду
-      const timer = setTimeout(() => {
-          setIsCheckingSession(false);
-      }, 2000);
-
-      return () => clearTimeout(timer);
   }, []);
 
   // ==========================================
